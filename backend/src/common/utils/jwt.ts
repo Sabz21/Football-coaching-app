@@ -1,5 +1,5 @@
-import jwt from 'jsonwebtoken';
-import { config } from '../config';
+import jwt, { Secret, SignOptions } from "jsonwebtoken";
+import { config } from "../config";
 import { Role } from '@prisma/client';
 
 export interface JWTPayload {
@@ -9,13 +9,18 @@ export interface JWTPayload {
 }
 
 export const generateToken = (payload: JWTPayload): string => {
-  return jwt.sign(payload, config.jwt.secret, {
-    expiresIn: config.jwt.expiresIn,
-  });
+  const secret: Secret = config.jwt.secret;
+
+  const options: SignOptions = {
+    expiresIn: config.jwt.expiresIn as SignOptions["expiresIn"],
+  };
+
+  return jwt.sign(payload, secret, options);
 };
 
 export const verifyToken = (token: string): JWTPayload => {
-  return jwt.verify(token, config.jwt.secret) as JWTPayload;
+  const secret: Secret = config.jwt.secret;
+  return jwt.verify(token, secret) as JWTPayload;
 };
 
 export const decodeToken = (token: string): JWTPayload | null => {
