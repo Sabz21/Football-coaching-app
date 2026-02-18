@@ -9,7 +9,7 @@ async function main() {
     console.log('✅ Database connected');
 
     // Start server
-    app.listen(config.port, () => {
+    app.listen(config.port, '0.0.0.0', () => {
       console.log(`
 🚀 Football Coaching Platform API
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
