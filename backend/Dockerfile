@@ -1,9 +1,13 @@
-# Build stage
-FROM node:20-alpine AS builder
+# Build stage (Debian-based for Prisma compatibility)
+FROM node:20-bookworm-slim AS builder
+
+RUN apt-get update \
+  && apt-get install -y openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files + prisma first for better caching
 COPY package*.json ./
 COPY prisma ./prisma/
 
@@ -19,33 +23,35 @@ COPY . .
 # Build TypeScript
 RUN npm run build
 
+
 # Production stage
-FROM node:20-alpine AS production
+FROM node:20-bookworm-slim AS production
+
+RUN apt-get update \
+  && apt-get install -y openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files + prisma
 COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install production dependencies only
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
-# Generate Prisma client
+# Generate Prisma client (in prod image too)
 RUN npx prisma generate
 
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
 
-# Set environment
 ENV NODE_ENV=production
 
-# Expose port
+# Railway provides PORT; keep default for local
+ENV PORT=3001
 EXPOSE 3001
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
 
 # Run migrations and start
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+
