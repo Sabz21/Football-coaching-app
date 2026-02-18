@@ -13,6 +13,8 @@ import {
   Menu,
   X,
   Zap,
+  Crown,
+  Search,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -25,8 +27,10 @@ import { getInitials } from '@/lib/utils';
 interface NavItem {
   href: string;
   labelKey: string;
+  label?: string;
   icon: React.ElementType;
-  roles: ('COACH' | 'PARENT' | 'PLAYER')[];
+  roles: ('COACH' | 'PARENT' | 'PLAYER' | 'ADMIN')[];
+  adminOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -34,7 +38,22 @@ const navItems: NavItem[] = [
     href: '/dashboard',
     labelKey: 'nav.dashboard',
     icon: LayoutDashboard,
-    roles: ['COACH', 'PARENT', 'PLAYER'],
+    roles: ['COACH', 'PARENT', 'PLAYER', 'ADMIN'],
+  },
+  {
+    href: '/admin',
+    labelKey: 'nav.admin',
+    label: 'Admin',
+    icon: Crown,
+    roles: ['ADMIN', 'COACH'], // For now, coaches can see it too for demo
+    adminOnly: true,
+  },
+  {
+    href: '/coaches',
+    labelKey: 'nav.coaches',
+    label: 'Find Coach',
+    icon: Search,
+    roles: ['PARENT', 'PLAYER'],
   },
   {
     href: '/players',
@@ -64,7 +83,7 @@ const navItems: NavItem[] = [
     href: '/settings',
     labelKey: 'nav.settings',
     icon: Settings,
-    roles: ['COACH', 'PARENT', 'PLAYER'],
+    roles: ['COACH', 'PARENT', 'PLAYER', 'ADMIN'],
   },
 ];
 
@@ -74,9 +93,15 @@ export function Sidebar() {
   const { t, isRTL } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
 
-  const filteredNavItems = navItems.filter(
-    (item) => user && item.roles.includes(user.role)
-  );
+  // Check if user is admin (for demo, check email)
+  const isAdmin = user?.email === 'admin@elitecoach.com';
+
+  const filteredNavItems = navItems.filter((item) => {
+    if (!user) return false;
+    // If it's admin only and user is not admin, hide it unless they're a coach (for demo)
+    if (item.adminOnly && !isAdmin && user.role !== 'COACH') return false;
+    return item.roles.includes(user.role as any);
+  });
 
   return (
     <>
@@ -126,8 +151,9 @@ export function Sidebar() {
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
             {filteredNavItems.map((item) => {
-              const isActive = pathname.startsWith(item.href);
+              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
               const Icon = item.icon;
+              const label = item.label || t(item.labelKey);
 
               return (
                 <Link
@@ -138,11 +164,12 @@ export function Sidebar() {
                     'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all',
                     isActive
                       ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+                    item.adminOnly && 'border border-dashed border-primary/30'
                   )}
                 >
                   <Icon className="w-5 h-5" />
-                  {t(item.labelKey)}
+                  {label}
                   {isActive && (
                     <div className={cn(
                       "w-1.5 h-1.5 rounded-full bg-primary",
@@ -168,7 +195,7 @@ export function Sidebar() {
                   {user?.firstName} {user?.lastName}
                 </p>
                 <p className="text-xs text-muted-foreground capitalize">
-                  {user?.role.toLowerCase()}
+                  {user?.role?.toLowerCase()}
                 </p>
               </div>
               <Button

@@ -1,3 +1,6 @@
+'use client';
+
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
 
@@ -6,6 +9,7 @@ interface StatCardProps {
   value: string | number;
   subtitle?: string;
   icon: LucideIcon;
+  href?: string;
   trend?: {
     value: number;
     isPositive: boolean;
@@ -18,11 +22,16 @@ export function StatCard({
   value,
   subtitle,
   icon: Icon,
+  href,
   trend,
   className,
 }: StatCardProps) {
-  return (
-    <div className={cn('stat-card group', className)}>
+  const content = (
+    <div className={cn(
+      'stat-card group',
+      href && 'cursor-pointer hover:border-primary/50',
+      className
+    )}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-sm text-muted-foreground mb-1">{title}</p>
@@ -49,6 +58,19 @@ export function StatCard({
           <Icon className="w-6 h-6" />
         </div>
       </div>
+      {href && (
+        <div className="mt-3 pt-3 border-t border-border">
+          <span className="text-xs text-primary group-hover:underline">
+            View details →
+          </span>
+        </div>
+      )}
     </div>
   );
+
+  if (href) {
+    return <Link href={href}>{content}</Link>;
+  }
+
+  return content;
 }

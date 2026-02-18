@@ -19,7 +19,9 @@
     "optional": "Optional",
     "yes": "Yes",
     "no": "No",
-    "or": "or"
+    "or": "or",
+    "viewAll": "View all",
+    "viewDetails": "View details"
   },
   "auth": {
     "login": "Sign In",
@@ -39,7 +41,9 @@
     "sessions": "Sessions",
     "bookings": "Bookings",
     "performance": "Performance",
-    "settings": "Settings"
+    "settings": "Settings",
+    "admin": "Admin",
+    "coaches": "Find Coach"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -55,7 +59,9 @@
     "todaySessions": "Today's Sessions",
     "noSessionsToday": "No sessions scheduled for today",
     "recentReports": "Recent Session Reports",
-    "noRecentReports": "No recent reports"
+    "noRecentReports": "No recent reports",
+    "findCoach": "Find a Coach",
+    "findCoachDesc": "Browse coaches, read reviews, and book sessions"
   },
   "players": {
     "title": "Players",
@@ -118,7 +124,11 @@
     "noSessions": "No sessions",
     "allSessionsThisWeek": "All Sessions This Week",
     "noSessionsThisWeek": "No sessions scheduled this week",
-    "spots": "spots filled"
+    "spots": "spots filled",
+    "editSession": "Edit Session",
+    "cancelSession": "Cancel Session",
+    "markComplete": "Mark as Completed",
+    "participants": "Participants"
   },
   "newSession": {
     "title": "Create New Session",
@@ -148,6 +158,46 @@
     "noUpcomingBookings": "You have no upcoming bookings",
     "confirm": "Confirm",
     "decline": "Decline"
+  },
+  "coaches": {
+    "title": "Find a Coach",
+    "subtitle": "Browse top-rated coaches, read reviews, and book your first session",
+    "searchPlaceholder": "Search by name, specialization...",
+    "noCoachesFound": "No coaches found",
+    "viewProfile": "View Profile",
+    "bookSession": "Book Session",
+    "writeReview": "Write Review",
+    "reviews": "reviews",
+    "players": "Players",
+    "experience": "Experience",
+    "perHour": "per hour",
+    "spotsLeft": "spots left",
+    "bookNow": "Book Now",
+    "about": "About",
+    "specializations": "Specializations",
+    "certifications": "Certifications",
+    "upcomingSessions": "Upcoming Available Sessions",
+    "yourRating": "Your Rating",
+    "yourReview": "Your Review",
+    "submitReview": "Submit Review",
+    "basedOn": "Based on"
+  },
+  "admin": {
+    "title": "Admin Dashboard",
+    "subtitle": "Manage coaches and view platform statistics",
+    "totalCoaches": "Total Coaches",
+    "totalPlayers": "Total Players",
+    "totalSessions": "Total Sessions",
+    "avgRating": "Avg. Coach Rating",
+    "allCoaches": "All Coaches",
+    "leaderboard": "Leaderboard",
+    "tierSystem": "Tier System",
+    "mostPlayers": "Most Players",
+    "highestRated": "Highest Rated",
+    "coachTierSystem": "Coach Tier System",
+    "tierDescription": "Coaches earn tiers based on their number of players and completed sessions.",
+    "minPlayers": "Min Players",
+    "minSessions": "Min Sessions"
   },
   "settings": {
     "title": "Settings",
@@ -196,5 +246,13 @@
     "pending": "Pending",
     "confirmed": "Confirmed",
     "noShow": "No Show"
+  },
+  "tiers": {
+    "bronze": "Bronze",
+    "silver": "Silver",
+    "gold": "Gold",
+    "platinum": "Platinum",
+    "diamond": "Diamond",
+    "elite": "Elite"
   }
 }

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, User, Mail, Phone, Send } from 'lucide-react';
+import { X, User, Mail, Phone, Send, CheckCircle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,7 +10,6 @@ import { playersApi } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -25,11 +24,10 @@ const playerSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   dateOfBirth: z.string().min(1, 'Date of birth is required'),
   position: z.string().optional(),
-  preferredFoot: z.enum(['Left', 'Right', 'Both']).optional(),
-  height: z.number().positive().optional().or(z.literal('')),
-  weight: z.number().positive().optional().or(z.literal('')),
+  preferredFoot: z.string().optional(),
+  height: z.string().optional(),
+  weight: z.string().optional(),
   notes: z.string().optional(),
-  // Credentials
   sendTo: z.enum(['parent', 'player']),
   recipientEmail: z.string().email('Valid email required'),
   recipientPhone: z.string().optional(),
@@ -47,6 +45,7 @@ export function AddPlayerModal({ open, onClose }: AddPlayerModalProps) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
+  const [success, setSuccess] = useState(false);
 
   const {
     register,
@@ -54,13 +53,15 @@ export function AddPlayerModal({ open, onClose }: AddPlayerModalProps) {
     watch,
     setValue,
     reset,
-    formState: { errors },
+    formState: { errors, isValid },
+    trigger,
   } = useForm<PlayerForm>({
     resolver: zodResolver(playerSchema),
     defaultValues: {
       sendTo: 'parent',
       notificationMethod: 'email',
     },
+    mode: 'onChange',
   });
 
   const sendTo = watch('sendTo');
@@ -72,26 +73,20 @@ export function AddPlayerModal({ open, onClose }: AddPlayerModalProps) {
         firstName: data.firstName,
         lastName: data.lastName,
         dateOfBirth: data.dateOfBirth,
-        position: data.position,
-        preferredFoot: data.preferredFoot,
+        position: data.position || undefined,
+        preferredFoot: data.preferredFoot || undefined,
         height: data.height ? Number(data.height) : undefined,
         weight: data.weight ? Number(data.weight) : undefined,
         notes: data.notes,
-        // These would be handled by the backend to create/invite parent or player
-        credentials: {
-          sendTo: data.sendTo,
-          email: data.recipientEmail,
-          phone: data.recipientPhone,
-          method: data.notificationMethod,
-        },
       };
       return playersApi.create(playerData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['players'] });
-      reset();
-      setStep(1);
-      onClose();
+      setSuccess(true);
+      setTimeout(() => {
+        handleClose();
+      }, 2000);
     },
   });
 
@@ -102,7 +97,16 @@ export function AddPlayerModal({ open, onClose }: AddPlayerModalProps) {
   const handleClose = () => {
     reset();
     setStep(1);
+    setSuccess(false);
     onClose();
+  };
+
+  const handleNextStep = async () => {
+    const fieldsToValidate = ['firstName', 'lastName', 'dateOfBirth'] as const;
+    const isStepValid = await trigger(fieldsToValidate);
+    if (isStepValid) {
+      setStep(2);
+    }
   };
 
   const positions = [
@@ -113,6 +117,25 @@ export function AddPlayerModal({ open, onClose }: AddPlayerModalProps) {
     { value: 'Winger', label: t('positions.winger') },
     { value: 'Striker', label: t('positions.striker') },
   ];
+
+  // Success Screen
+  if (success) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-md">
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-success" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Player Created!</h3>
+            <p className="text-muted-foreground">
+              {t('addPlayer.successMessage')}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -151,17 +174,29 @@ export function AddPlayerModal({ open, onClose }: AddPlayerModalProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">{t('addPlayer.firstName')} *</label>
-                  <Input {...register('firstName')} error={errors.firstName?.message} />
+                  <Input 
+                    {...register('firstName')} 
+                    placeholder="John"
+                    error={errors.firstName?.message as string} 
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">{t('addPlayer.lastName')} *</label>
-                  <Input {...register('lastName')} error={errors.lastName?.message} />
+                  <Input 
+                    {...register('lastName')} 
+                    placeholder="Doe"
+                    error={errors.lastName?.message as string} 
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">{t('addPlayer.dateOfBirth')} *</label>
-                <Input type="date" {...register('dateOfBirth')} error={errors.dateOfBirth?.message} />
+                <Input 
+                  type="date" 
+                  {...register('dateOfBirth')} 
+                  error={errors.dateOfBirth?.message as string} 
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -196,11 +231,19 @@ export function AddPlayerModal({ open, onClose }: AddPlayerModalProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">{t('addPlayer.height')}</label>
-                  <Input type="number" {...register('height', { valueAsNumber: true })} />
+                  <Input 
+                    type="number" 
+                    {...register('height')} 
+                    placeholder="145"
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">{t('addPlayer.weight')}</label>
-                  <Input type="number" {...register('weight', { valueAsNumber: true })} />
+                  <Input 
+                    type="number" 
+                    {...register('weight')} 
+                    placeholder="40"
+                  />
                 </div>
               </div>
 
@@ -214,8 +257,8 @@ export function AddPlayerModal({ open, onClose }: AddPlayerModalProps) {
               </div>
 
               <div className="flex justify-end">
-                <Button type="button" onClick={() => setStep(2)}>
-                  {t('common.next')}
+                <Button type="button" onClick={handleNextStep}>
+                  {t('common.next')} →
                 </Button>
               </div>
             </div>
@@ -270,14 +313,14 @@ export function AddPlayerModal({ open, onClose }: AddPlayerModalProps) {
                     type="email"
                     className="pl-10"
                     placeholder="email@example.com"
-                    error={errors.recipientEmail?.message}
+                    error={errors.recipientEmail?.message as string}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">
-                  {sendTo === 'parent' ? t('addPlayer.parentPhone') : t('addPlayer.playerPhone')}
+                  {sendTo === 'parent' ? t('addPlayer.parentPhone') : t('addPlayer.playerPhone')} ({t('common.optional')})
                 </label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -323,21 +366,21 @@ export function AddPlayerModal({ open, onClose }: AddPlayerModalProps) {
                 </div>
               </div>
 
+              {createMutation.isError && (
+                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                  {t('common.error')}: {(createMutation.error as any)?.response?.data?.error || 'Something went wrong'}
+                </div>
+              )}
+
               <div className="flex justify-between pt-4">
                 <Button type="button" variant="outline" onClick={() => setStep(1)}>
-                  {t('common.back')}
+                  ← {t('common.back')}
                 </Button>
                 <Button type="submit" disabled={createMutation.isPending}>
                   <Send className="w-4 h-4 mr-2" />
-                  {createMutation.isPending ? t('addPlayer.creating') : t('addPlayer.title')}
+                  {createMutation.isPending ? t('addPlayer.creating') : t('common.save')}
                 </Button>
               </div>
-
-              {createMutation.isError && (
-                <p className="text-sm text-destructive text-center">
-                  {t('common.error')}: {(createMutation.error as any)?.message}
-                </p>
-              )}
             </div>
           )}
         </form>
