@@ -307,7 +307,7 @@ export default function SettingsPage() {
                     <Input
                       {...passwordForm.register('currentPassword')}
                       type={showCurrentPassword ? 'text' : 'password'}
-                      error={passwordForm.formState.errors.currentPassword?.message}
+                      error={passwordForm.formState.errors.currentPassword?.message as string}
                     />
                     <button
                       type="button"
@@ -324,7 +324,7 @@ export default function SettingsPage() {
                     <Input
                       {...passwordForm.register('newPassword')}
                       type={showNewPassword ? 'text' : 'password'}
-                      error={passwordForm.formState.errors.newPassword?.message}
+                      error={passwordForm.formState.errors.currentPassword?.message as string}
                     />
                     <button
                       type="button"
@@ -340,7 +340,7 @@ export default function SettingsPage() {
                   <Input
                     {...passwordForm.register('confirmPassword')}
                     type="password"
-                    error={passwordForm.formState.errors.confirmPassword?.message}
+                    error={passwordForm.formState.errors.currentPassword?.message as string}
                   />
                 </div>
                 <div className="flex items-center justify-between pt-4">
