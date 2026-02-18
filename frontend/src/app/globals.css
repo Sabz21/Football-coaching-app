@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Premium dark theme - inspired by high-end sports tech */
+    --background: 220 20% 6%;
+    --foreground: 210 20% 98%;
+    
+    --card: 220 18% 10%;
+    --card-foreground: 210 20% 98%;
+    
+    --popover: 220 18% 10%;
+    --popover-foreground: 210 20% 98%;
+    
+    --primary: 142 76% 46%;
+    --primary-foreground: 220 20% 6%;
+    
+    --secondary: 220 14% 16%;
+    --secondary-foreground: 210 20% 98%;
+    
+    --muted: 220 14% 16%;
+    --muted-foreground: 220 10% 55%;
+    
+    --accent: 38 92% 50%;
+    --accent-foreground: 220 20% 6%;
+    
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 20% 98%;
+    
+    --border: 220 14% 18%;
+    --input: 220 14% 18%;
+    --ring: 142 76% 46%;
+    
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Premium scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+}
+
+@layer components {
+  /* Gradient text effect */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent;
+    background-size: 200% auto;
+  }
+
+  /* Glass card effect */
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50;
+  }
+
+  /* Stats card hover effect */
+  .stat-card {
+    @apply relative overflow-hidden rounded-xl bg-card border border-border p-6 transition-all duration-300;
+  }
+
+  .stat-card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300;
+  }
+
+  .stat-card:hover::before {
+    @apply opacity-100;
+  }
+
+  /* Premium button styles */
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200;
+    @apply shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30;
+  }
+
+  /* Progress bar with glow */
+  .progress-glow {
+    @apply relative;
+  }
+
+  .progress-glow::after {
+    content: '';
+    @apply absolute inset-0 rounded-full bg-primary/30 blur-sm;
+  }
+
+  /* Metric badge */
+  .metric-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+
+  .metric-badge-up {
+    @apply bg-success/20 text-success;
+  }
+
+  .metric-badge-down {
+    @apply bg-destructive/20 text-destructive;
+  }
+
+  /* Session card */
+  .session-card {
+    @apply relative overflow-hidden rounded-xl bg-card border-l-4 p-4;
+  }
+
+  .session-card-scheduled {
+    @apply border-l-primary;
+  }
+
+  .session-card-completed {
+    @apply border-l-success;
+  }
+
+  .session-card-cancelled {
+    @apply border-l-destructive;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Animations */
+  .animate-in {
+    animation: fade-in 0.3s ease-out forwards;
+  }
+
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+  .stagger-5 { animation-delay: 0.5s; }
+}
