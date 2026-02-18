@@ -53,5 +53,6 @@ ENV PORT=3001
 EXPOSE 3001
 
 # Run migrations and start
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+CMD ["sh", "-c", "npx prisma db push && node dist/main.js"]
+
 
