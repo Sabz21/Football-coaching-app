@@ -2,20 +2,24 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, Plus, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, addWeeks, subWeeks, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
 import { sessionsApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth-store';
+import { useI18n } from '@/lib/i18n';
 import { SessionCard } from '@/components/sessions/session-card';
+import { NewSessionModal } from '@/components/modals/new-session-modal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { cn, formatTime, DAYS_OF_WEEK } from '@/lib/utils';
+import { cn, formatTime } from '@/lib/utils';
 
 export default function SessionsPage() {
   const { user } = useAuthStore();
+  const { t } = useI18n();
   const isCoach = user?.role === 'COACH';
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [showNewSessionModal, setShowNewSessionModal] = useState(false);
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
@@ -39,15 +43,15 @@ export default function SessionsPage() {
     <div className="space-y-6 animate-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Sessions</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('sessions.title')}</h1>
           <p className="text-muted-foreground mt-1">
-            {isCoach ? 'Manage your training schedule' : 'Browse available sessions'}
+            {isCoach ? t('sessions.subtitle') : t('sessions.subtitleParent')}
           </p>
         </div>
         {isCoach && (
-          <Button>
+          <Button onClick={() => setShowNewSessionModal(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            New Session
+            {t('sessions.newSession')}
           </Button>
         )}
       </div>
@@ -66,7 +70,7 @@ export default function SessionsPage() {
             className="text-sm text-muted-foreground"
             onClick={() => setCurrentWeek(new Date())}
           >
-            Go to Today
+            {t('sessions.goToToday')}
           </Button>
         </div>
         <Button variant="outline" size="icon" onClick={() => setCurrentWeek(addWeeks(currentWeek, 1))}>
@@ -117,7 +121,7 @@ export default function SessionsPage() {
                     ))
                   ) : (
                     <p className="text-xs text-muted-foreground text-center py-4">
-                      No sessions
+                      {t('sessions.noSessions')}
                     </p>
                   )}
                 </CardContent>
@@ -132,7 +136,7 @@ export default function SessionsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-primary" />
-            All Sessions This Week
+            {t('sessions.allSessionsThisWeek')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -145,11 +149,14 @@ export default function SessionsPage() {
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>No sessions scheduled this week</p>
+              <p>{t('sessions.noSessionsThisWeek')}</p>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* New Session Modal */}
+      <NewSessionModal open={showNewSessionModal} onClose={() => setShowNewSessionModal(false)} />
     </div>
   );
 }

@@ -16,14 +16,15 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { useAuthStore, useIsCoach, useIsParent } from '@/lib/auth-store';
+import { useAuthStore } from '@/lib/auth-store';
+import { useI18n } from '@/lib/i18n';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { getInitials } from '@/lib/utils';
 
 interface NavItem {
   href: string;
-  label: string;
+  labelKey: string;
   icon: React.ElementType;
   roles: ('COACH' | 'PARENT' | 'PLAYER')[];
 }
@@ -31,32 +32,38 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     href: '/dashboard',
-    label: 'Dashboard',
+    labelKey: 'nav.dashboard',
     icon: LayoutDashboard,
     roles: ['COACH', 'PARENT', 'PLAYER'],
   },
   {
     href: '/players',
-    label: 'Players',
+    labelKey: 'nav.players',
     icon: Users,
     roles: ['COACH'],
   },
   {
     href: '/sessions',
-    label: 'Sessions',
+    labelKey: 'nav.sessions',
     icon: Calendar,
     roles: ['COACH', 'PARENT'],
   },
   {
     href: '/bookings',
-    label: 'Bookings',
+    labelKey: 'nav.bookings',
     icon: ClipboardList,
     roles: ['COACH', 'PARENT'],
   },
   {
     href: '/performance',
-    label: 'Performance',
+    labelKey: 'nav.performance',
     icon: TrendingUp,
+    roles: ['COACH', 'PARENT', 'PLAYER'],
+  },
+  {
+    href: '/settings',
+    labelKey: 'nav.settings',
+    icon: Settings,
     roles: ['COACH', 'PARENT', 'PLAYER'],
   },
 ];
@@ -64,6 +71,7 @@ const navItems: NavItem[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
+  const { t, isRTL } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
 
   const filteredNavItems = navItems.filter(
@@ -74,7 +82,10 @@ export function Sidebar() {
     <>
       {/* Mobile menu button */}
       <button
-        className="fixed top-4 left-4 z-50 lg:hidden p-2 rounded-lg bg-card border border-border"
+        className={cn(
+          "fixed top-4 z-50 lg:hidden p-2 rounded-lg bg-card border border-border",
+          isRTL ? "right-4" : "left-4"
+        )}
         onClick={() => setIsOpen(!isOpen)}
       >
         {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -91,8 +102,13 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed top-0 left-0 z-40 h-screen w-64 bg-card border-r border-border transition-transform duration-300 lg:translate-x-0',
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+          'fixed top-0 z-40 h-screen w-64 bg-card border-border transition-transform duration-300 lg:translate-x-0',
+          isRTL ? 'right-0 border-l' : 'left-0 border-r',
+          isOpen 
+            ? 'translate-x-0' 
+            : isRTL 
+              ? 'translate-x-full' 
+              : '-translate-x-full'
         )}
       >
         <div className="flex flex-col h-full">
@@ -126,9 +142,12 @@ export function Sidebar() {
                   )}
                 >
                   <Icon className="w-5 h-5" />
-                  {item.label}
+                  {t(item.labelKey)}
                   {isActive && (
-                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
+                    <div className={cn(
+                      "w-1.5 h-1.5 rounded-full bg-primary",
+                      isRTL ? "mr-auto" : "ml-auto"
+                    )} />
                   )}
                 </Link>
               );
@@ -169,10 +188,15 @@ export function Sidebar() {
 }
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
+  const { isRTL } = useI18n();
+  
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" dir={isRTL ? 'rtl' : 'ltr'}>
       <Sidebar />
-      <main className="lg:pl-64">
+      <main className={cn(
+        "lg:pl-64",
+        isRTL && "lg:pl-0 lg:pr-64"
+      )}>
         <div className="container mx-auto px-4 py-6 lg:px-8 lg:py-8">
           {children}
         </div>
