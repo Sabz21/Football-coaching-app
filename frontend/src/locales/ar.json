@@ -19,7 +19,9 @@
     "optional": "اختياري",
     "yes": "نعم",
     "no": "لا",
-    "or": "أو"
+    "or": "أو",
+    "viewAll": "عرض الكل",
+    "viewDetails": "عرض التفاصيل"
   },
   "auth": {
     "login": "تسجيل الدخول",
@@ -39,7 +41,9 @@
     "sessions": "الحصص",
     "bookings": "الحجوزات",
     "performance": "الأداء",
-    "settings": "الإعدادات"
+    "settings": "الإعدادات",
+    "admin": "الإدارة",
+    "coaches": "البحث عن مدرب"
   },
   "dashboard": {
     "title": "لوحة التحكم",
@@ -55,7 +59,11 @@
     "todaySessions": "حصص اليوم",
     "noSessionsToday": "لا توجد حصص مجدولة لليوم",
     "recentReports": "التقارير الأخيرة",
-    "noRecentReports": "لا توجد تقارير حديثة"
+    "noRecentReports": "لا توجد تقارير حديثة",
+    "findCoach": "ابحث عن مدرب",
+    "findCoachDesc": "تصفح المدربين، اقرأ التقييمات واحجز حصص",
+    "yourChildren": "أطفالك",
+    "trackProgress": "تتبع تقدم أطفالك"
   },
   "players": {
     "title": "اللاعبون",
@@ -118,7 +126,20 @@
     "noSessions": "لا توجد حصص",
     "allSessionsThisWeek": "جميع حصص هذا الأسبوع",
     "noSessionsThisWeek": "لا توجد حصص مجدولة هذا الأسبوع",
-    "spots": "أماكن محجوزة"
+    "spots": "أماكن محجوزة",
+    "editSession": "تعديل الحصة",
+    "editSessionDesc": "تحديث تفاصيل الحصة",
+    "cancelSession": "إلغاء الحصة",
+    "cancelSessionConfirm": "هل أنت متأكد من إلغاء هذه الحصة؟ سيتم إلغاء جميع الحجوزات وإخطار المشاركين.",
+    "keepSession": "الإبقاء على الحصة",
+    "yesCancelSession": "نعم، إلغاء الحصة",
+    "markComplete": "تحديد كمكتملة",
+    "participants": "المشاركون",
+    "noParticipants": "لا يوجد مشاركون حتى الآن",
+    "trainingSession": "حصة تدريبية",
+    "sessionNotFound": "الحصة غير موجودة",
+    "sessionNotFoundDesc": "هذه الحصة غير موجودة أو تم حذفها.",
+    "backToSessions": "العودة للحصص"
   },
   "newSession": {
     "title": "إنشاء حصة جديدة",
@@ -149,6 +170,49 @@
     "confirm": "تأكيد",
     "decline": "رفض"
   },
+  "coaches": {
+    "title": "البحث عن مدرب",
+    "subtitle": "تصفح أفضل المدربين، اقرأ التقييمات واحجز حصتك الأولى",
+    "searchPlaceholder": "البحث بالاسم أو التخصص...",
+    "noCoachesFound": "لم يتم العثور على مدربين",
+    "viewProfile": "عرض الملف الشخصي",
+    "bookSession": "حجز حصة",
+    "writeReview": "كتابة تقييم",
+    "reviews": "تقييمات",
+    "players": "لاعبون",
+    "experience": "خبرة",
+    "perHour": "في الساعة",
+    "spotsLeft": "أماكن متاحة",
+    "bookNow": "احجز الآن",
+    "about": "حول",
+    "specializations": "التخصصات",
+    "certifications": "الشهادات",
+    "upcomingSessions": "الحصص المتاحة القادمة",
+    "yourRating": "تقييمك",
+    "yourReview": "تقييمك",
+    "submitReview": "إرسال التقييم",
+    "basedOn": "بناءً على",
+    "message": "رسالة",
+    "allSpecializations": "الكل"
+  },
+  "admin": {
+    "title": "لوحة تحكم الإدارة",
+    "subtitle": "إدارة المدربين وعرض إحصائيات المنصة",
+    "totalCoaches": "إجمالي المدربين",
+    "totalPlayers": "إجمالي اللاعبين",
+    "totalSessions": "إجمالي الحصص",
+    "avgRating": "متوسط تقييم المدربين",
+    "allCoaches": "جميع المدربين",
+    "leaderboard": "لوحة المتصدرين",
+    "tierSystem": "نظام المستويات",
+    "mostPlayers": "أكثر اللاعبين",
+    "highestRated": "الأعلى تقييماً",
+    "coachTierSystem": "نظام مستويات المدربين",
+    "tierDescription": "يكسب المدربون المستويات بناءً على عدد اللاعبين والحصص المكتملة.",
+    "minPlayers": "الحد الأدنى للاعبين",
+    "minSessions": "الحد الأدنى للحصص",
+    "active": "نشط"
+  },
   "settings": {
     "title": "الإعدادات",
     "subtitle": "إدارة حسابك وتفضيلاتك",
@@ -178,7 +242,36 @@
     "notificationsDesc": "تلقي تحديثات بالبريد عن الحجوزات والحصص",
     "saving": "جاري الحفظ...",
     "saved": "تم حفظ الإعدادات بنجاح!",
-    "passwordChanged": "تم تغيير كلمة المرور بنجاح!"
+    "passwordChanged": "تم تغيير كلمة المرور بنجاح!",
+    "emailCannotChange": "لا يمكن تغيير البريد الإلكتروني",
+    "separateWithCommas": "افصل بفواصل"
+  },
+  "ratePlayer": {
+    "title": "تقييم اللاعب",
+    "subtitle": "قيّم أداء اللاعب في هذه الحصة",
+    "rateButton": "تقييم",
+    "ratings": "التقييمات",
+    "effort": "الجهد",
+    "focus": "التركيز",
+    "technical": "التقنية",
+    "drillsCompleted": "التمارين المكتملة",
+    "focusAreas": "مجالات التركيز",
+    "highlights": "النقاط المميزة",
+    "highlightsPlaceholder": "ما الذي أبدع فيه اللاعب؟",
+    "improvements": "مجالات التحسين",
+    "improvementsPlaceholder": "ما الذي يجب على اللاعب العمل عليه؟",
+    "playerFeedback": "ملاحظات للاعب",
+    "playerFeedbackPlaceholder": "رسالة تشجيعية للاعب...",
+    "playerFeedbackNote": "هذه الرسالة ستكون مرئية للاعب ووالديه",
+    "coachNotes": "ملاحظات المدرب",
+    "coachNotesPlaceholder": "ملاحظات شخصية (غير مرئية للاعب)...",
+    "coachNotesPrivate": "هذه الملاحظات خاصة ومرئية لك فقط",
+    "saveReport": "حفظ التقرير",
+    "saving": "جاري الحفظ...",
+    "reportSaved": "تم حفظ التقرير!",
+    "reportSavedDesc": "تم حفظ تقرير الأداء بنجاح.",
+    "present": "حاضر",
+    "absent": "غائب"
   },
   "positions": {
     "goalkeeper": "حارس مرمى",
@@ -190,11 +283,19 @@
   },
   "status": {
     "scheduled": "مجدول",
-    "inProgress": "قيد التنفيذ",
+    "in_progress": "قيد التنفيذ",
     "completed": "مكتمل",
     "cancelled": "ملغى",
     "pending": "معلق",
     "confirmed": "مؤكد",
-    "noShow": "لم يحضر"
+    "no_show": "لم يحضر"
+  },
+  "tiers": {
+    "bronze": "برونزي",
+    "silver": "فضي",
+    "gold": "ذهبي",
+    "platinum": "بلاتيني",
+    "diamond": "ماسي",
+    "elite": "نخبة"
   }
 }

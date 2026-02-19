@@ -19,7 +19,9 @@
     "optional": "Optionnel",
     "yes": "Oui",
     "no": "Non",
-    "or": "ou"
+    "or": "ou",
+    "viewAll": "Voir tout",
+    "viewDetails": "Voir les détails"
   },
   "auth": {
     "login": "Se connecter",
@@ -39,12 +41,14 @@
     "sessions": "Séances",
     "bookings": "Réservations",
     "performance": "Performance",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "admin": "Admin",
+    "coaches": "Trouver un coach"
   },
   "dashboard": {
     "title": "Tableau de bord",
     "welcome": "Bienvenue ! Voici votre aperçu.",
-    "totalPlayers": "Total Joueurs",
+    "totalPlayers": "Total joueurs",
     "activePlayers": "actifs",
     "upcomingSessions": "Séances à venir",
     "thisWeek": "Cette semaine",
@@ -55,7 +59,11 @@
     "todaySessions": "Séances d'aujourd'hui",
     "noSessionsToday": "Aucune séance prévue aujourd'hui",
     "recentReports": "Rapports récents",
-    "noRecentReports": "Aucun rapport récent"
+    "noRecentReports": "Aucun rapport récent",
+    "findCoach": "Trouver un coach",
+    "findCoachDesc": "Parcourez les coachs, lisez les avis et réservez des séances",
+    "yourChildren": "Vos enfants",
+    "trackProgress": "Suivez les progrès de vos enfants"
   },
   "players": {
     "title": "Joueurs",
@@ -104,7 +112,7 @@
     "playerEmail": "Email du joueur",
     "playerPhone": "Téléphone du joueur",
     "notificationMethod": "Méthode de notification",
-    "viaEmail": "Par Email",
+    "viaEmail": "Par email",
     "viaSMS": "Par SMS",
     "creating": "Création en cours...",
     "successMessage": "Joueur créé avec succès ! Les identifiants ont été envoyés."
@@ -112,17 +120,30 @@
   "sessions": {
     "title": "Séances",
     "subtitle": "Gérez votre planning d'entraînement",
-    "subtitleParent": "Parcourir les séances disponibles",
+    "subtitleParent": "Parcourez les séances disponibles",
     "newSession": "Nouvelle séance",
     "goToToday": "Aller à aujourd'hui",
     "noSessions": "Aucune séance",
     "allSessionsThisWeek": "Toutes les séances cette semaine",
     "noSessionsThisWeek": "Aucune séance prévue cette semaine",
-    "spots": "places occupées"
+    "spots": "places occupées",
+    "editSession": "Modifier la séance",
+    "editSessionDesc": "Mettez à jour les détails de la séance",
+    "cancelSession": "Annuler la séance",
+    "cancelSessionConfirm": "Êtes-vous sûr de vouloir annuler cette séance ? Toutes les réservations seront annulées et les participants seront notifiés.",
+    "keepSession": "Garder la séance",
+    "yesCancelSession": "Oui, annuler la séance",
+    "markComplete": "Marquer comme terminée",
+    "participants": "Participants",
+    "noParticipants": "Aucun participant pour le moment",
+    "trainingSession": "Séance d'entraînement",
+    "sessionNotFound": "Séance non trouvée",
+    "sessionNotFoundDesc": "Cette séance n'existe pas ou a été supprimée.",
+    "backToSessions": "Retour aux séances"
   },
   "newSession": {
     "title": "Créer une nouvelle séance",
-    "subtitle": "Planifier une nouvelle séance d'entraînement",
+    "subtitle": "Planifiez une nouvelle séance d'entraînement",
     "date": "Date",
     "startTime": "Heure de début",
     "endTime": "Heure de fin",
@@ -149,12 +170,55 @@
     "confirm": "Confirmer",
     "decline": "Refuser"
   },
+  "coaches": {
+    "title": "Trouver un coach",
+    "subtitle": "Parcourez les meilleurs coachs, lisez les avis et réservez votre première séance",
+    "searchPlaceholder": "Rechercher par nom, spécialisation...",
+    "noCoachesFound": "Aucun coach trouvé",
+    "viewProfile": "Voir le profil",
+    "bookSession": "Réserver une séance",
+    "writeReview": "Écrire un avis",
+    "reviews": "avis",
+    "players": "Joueurs",
+    "experience": "Expérience",
+    "perHour": "par heure",
+    "spotsLeft": "places disponibles",
+    "bookNow": "Réserver maintenant",
+    "about": "À propos",
+    "specializations": "Spécialisations",
+    "certifications": "Certifications",
+    "upcomingSessions": "Prochaines séances disponibles",
+    "yourRating": "Votre note",
+    "yourReview": "Votre avis",
+    "submitReview": "Soumettre l'avis",
+    "basedOn": "Basé sur",
+    "message": "Message",
+    "allSpecializations": "Toutes"
+  },
+  "admin": {
+    "title": "Tableau de bord Admin",
+    "subtitle": "Gérez les coachs et consultez les statistiques de la plateforme",
+    "totalCoaches": "Total coachs",
+    "totalPlayers": "Total joueurs",
+    "totalSessions": "Total séances",
+    "avgRating": "Note moyenne",
+    "allCoaches": "Tous les coachs",
+    "leaderboard": "Classement",
+    "tierSystem": "Système de paliers",
+    "mostPlayers": "Plus de joueurs",
+    "highestRated": "Mieux notés",
+    "coachTierSystem": "Système de paliers des coachs",
+    "tierDescription": "Les coachs gagnent des paliers en fonction de leur nombre de joueurs et de séances terminées.",
+    "minPlayers": "Min. joueurs",
+    "minSessions": "Min. séances",
+    "active": "actifs"
+  },
   "settings": {
     "title": "Paramètres",
     "subtitle": "Gérez votre compte et vos préférences",
     "profile": "Profil",
     "profileDesc": "Mettez à jour vos informations personnelles",
-    "coachInfo": "Informations Coach",
+    "coachInfo": "Informations coach",
     "coachInfoDesc": "Vos détails professionnels",
     "security": "Sécurité",
     "securityDesc": "Mot de passe et paramètres de sécurité",
@@ -178,7 +242,36 @@
     "notificationsDesc": "Recevoir des mises à jour par email sur les réservations et séances",
     "saving": "Enregistrement...",
     "saved": "Paramètres enregistrés avec succès !",
-    "passwordChanged": "Mot de passe changé avec succès !"
+    "passwordChanged": "Mot de passe changé avec succès !",
+    "emailCannotChange": "L'email ne peut pas être modifié",
+    "separateWithCommas": "Séparez par des virgules"
+  },
+  "ratePlayer": {
+    "title": "Noter le joueur",
+    "subtitle": "Évaluez la performance du joueur pour cette séance",
+    "rateButton": "Noter",
+    "ratings": "Notes",
+    "effort": "Effort",
+    "focus": "Concentration",
+    "technical": "Technique",
+    "drillsCompleted": "Exercices effectués",
+    "focusAreas": "Points de focus",
+    "highlights": "Points forts",
+    "highlightsPlaceholder": "Qu'est-ce que le joueur a bien fait ?",
+    "improvements": "Points à améliorer",
+    "improvementsPlaceholder": "Sur quoi le joueur doit-il travailler ?",
+    "playerFeedback": "Feedback pour le joueur",
+    "playerFeedbackPlaceholder": "Message encourageant pour le joueur...",
+    "playerFeedbackNote": "Ce message sera visible par le joueur et ses parents",
+    "coachNotes": "Notes du coach",
+    "coachNotesPlaceholder": "Notes personnelles (non visibles par le joueur)...",
+    "coachNotesPrivate": "Ces notes sont privées et ne seront visibles que par vous",
+    "saveReport": "Enregistrer le rapport",
+    "saving": "Enregistrement...",
+    "reportSaved": "Rapport enregistré !",
+    "reportSavedDesc": "Le rapport de performance a été enregistré avec succès.",
+    "present": "Présent",
+    "absent": "Absent"
   },
   "positions": {
     "goalkeeper": "Gardien",
@@ -190,11 +283,19 @@
   },
   "status": {
     "scheduled": "Planifié",
-    "inProgress": "En cours",
+    "in_progress": "En cours",
     "completed": "Terminé",
     "cancelled": "Annulé",
     "pending": "En attente",
     "confirmed": "Confirmé",
-    "noShow": "Absent"
+    "no_show": "Absent"
+  },
+  "tiers": {
+    "bronze": "Bronze",
+    "silver": "Argent",
+    "gold": "Or",
+    "platinum": "Platine",
+    "diamond": "Diamant",
+    "elite": "Élite"
   }
 }

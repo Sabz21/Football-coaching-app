@@ -27,7 +27,6 @@ import { getInitials } from '@/lib/utils';
 interface NavItem {
   href: string;
   labelKey: string;
-  label?: string;
   icon: React.ElementType;
   roles: ('COACH' | 'PARENT' | 'PLAYER' | 'ADMIN')[];
   adminOnly?: boolean;
@@ -43,15 +42,13 @@ const navItems: NavItem[] = [
   {
     href: '/admin',
     labelKey: 'nav.admin',
-    label: 'Admin',
     icon: Crown,
-    roles: ['ADMIN', 'COACH'], // For now, coaches can see it too for demo
+    roles: ['ADMIN', 'COACH'],
     adminOnly: true,
   },
   {
     href: '/coaches',
     labelKey: 'nav.coaches',
-    label: 'Find Coach',
     icon: Search,
     roles: ['PARENT', 'PLAYER'],
   },
@@ -98,7 +95,6 @@ export function Sidebar() {
 
   const filteredNavItems = navItems.filter((item) => {
     if (!user) return false;
-    // If it's admin only and user is not admin, hide it unless they're a coach (for demo)
     if (item.adminOnly && !isAdmin && user.role !== 'COACH') return false;
     return item.roles.includes(user.role as any);
   });
@@ -153,7 +149,6 @@ export function Sidebar() {
             {filteredNavItems.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
               const Icon = item.icon;
-              const label = item.label || t(item.labelKey);
 
               return (
                 <Link
@@ -169,7 +164,7 @@ export function Sidebar() {
                   )}
                 >
                   <Icon className="w-5 h-5" />
-                  {label}
+                  {t(item.labelKey)}
                   {isActive && (
                     <div className={cn(
                       "w-1.5 h-1.5 rounded-full bg-primary",
