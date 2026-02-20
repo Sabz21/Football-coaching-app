@@ -5,8 +5,17 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'Elite Coach Pro - Football Training Platform',
-  description: 'Professional football coaching platform for tracking player performance, managing sessions, and building champions.',
+  title: 'Vertex - Football Player Development Platform',
+  description: 'The intelligent platform for football player development. Track progress, get AI-powered training recommendations, and unlock every player\'s potential.',
+  keywords: ['football', 'coaching', 'player development', 'training', 'sports tech'],
+  authors: [{ name: 'Vertex Football' }],
+  openGraph: {
+    title: 'Vertex - Football Player Development Platform',
+    description: 'The intelligent platform for football player development.',
+    url: 'https://vertex-football.com',
+    siteName: 'Vertex',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({

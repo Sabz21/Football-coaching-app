@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Zap, Mail, Lock, User, Phone, ArrowRight } from 'lucide-react';
+import { Triangle, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '@/lib/auth-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,6 @@ const registerSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   email: z.string().email('Please enter a valid email'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  phone: z.string().optional(),
   role: z.enum(['COACH', 'PARENT']),
 });
 
@@ -51,7 +50,6 @@ export default function RegisterPage() {
         firstName: data.firstName,
         lastName: data.lastName,
         role: data.role,
-        phone: data.phone,
       });
       router.push('/dashboard');
     } catch (err: any) {
@@ -61,22 +59,24 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-emerald-500/5" />
+      
       <div className="relative w-full max-w-md">
+        {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary">
-            <Zap className="w-6 h-6 text-primary-foreground" />
+          <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-emerald-400 shadow-lg shadow-primary/25">
+            <Triangle className="w-7 h-7 text-primary-foreground fill-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Elite Coach</h1>
-            <p className="text-sm text-muted-foreground">Pro Training Platform</p>
+            <h1 className="text-3xl font-bold tracking-tight">Vertex</h1>
+            <p className="text-sm text-muted-foreground">Player Development Platform</p>
           </div>
         </div>
 
         <Card className="border-border/50 shadow-2xl">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Create account</CardTitle>
-            <CardDescription>Join the elite training platform</CardDescription>
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-2xl">Create your account</CardTitle>
+            <CardDescription>Start developing champions today</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -84,6 +84,7 @@ export default function RegisterPage() {
                 <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>
               )}
 
+              {/* Role Selection */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">I am a...</label>
                 <div className="grid grid-cols-2 gap-3">
@@ -99,8 +100,12 @@ export default function RegisterPage() {
                           : 'border-border hover:border-primary/50'
                       )}
                     >
-                      <span className="block text-2xl mb-1">{role === 'PARENT' ? '👨‍👩‍👧' : '🏆'}</span>
-                      <span className="text-sm font-medium capitalize">{role.toLowerCase()}</span>
+                      <span className="block text-2xl mb-1">
+                        {role === 'PARENT' ? '👨‍👩‍👧' : '⚽'}
+                      </span>
+                      <span className="text-sm font-medium capitalize">
+                        {role.toLowerCase()}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -119,7 +124,7 @@ export default function RegisterPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">Email</label>
-                <Input {...register('email')} type="email" placeholder="john@example.com" error={errors.email?.message} />
+                <Input {...register('email')} type="email" placeholder="you@example.com" error={errors.email?.message} />
               </div>
 
               <div className="space-y-2">
@@ -138,6 +143,14 @@ export default function RegisterPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          By creating an account, you agree to our{' '}
+          <Link href="/terms" className="underline">Terms</Link>
+          {' '}and{' '}
+          <Link href="/privacy" className="underline">Privacy Policy</Link>
+        </p>
       </div>
     </div>
   );

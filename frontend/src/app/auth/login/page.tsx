@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Zap, Mail, Lock, ArrowRight } from 'lucide-react';
+import { Triangle, Mail, Lock, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '@/lib/auth-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,38 +38,43 @@ export default function LoginPage() {
       await login(data.email, data.password);
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.');
+      setError(err.response?.data?.error || 'Invalid email or password');
     }
   };
+
+  const demoAccounts = [
+    { role: 'Coach', email: 'coach@example.com', password: 'coach123' },
+    { role: 'Parent', email: 'parent1@example.com', password: 'parent123' },
+  ];
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-emerald-500/5" />
       
       <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary">
-            <Zap className="w-6 h-6 text-primary-foreground" />
+          <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-emerald-400 shadow-lg shadow-primary/25">
+            <Triangle className="w-7 h-7 text-primary-foreground fill-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Elite Coach</h1>
-            <p className="text-sm text-muted-foreground">Pro Training Platform</p>
+            <h1 className="text-3xl font-bold tracking-tight">Vertex</h1>
+            <p className="text-sm text-muted-foreground">Player Development Platform</p>
           </div>
         </div>
 
-        <Card className="border-border/50 shadow-2xl">
-          <CardHeader className="text-center">
+        <Card className="border-border/50 shadow-2xl backdrop-blur">
+          <CardHeader className="text-center pb-2">
             <CardTitle className="text-2xl">Welcome back</CardTitle>
             <CardDescription>
-              Sign in to your account to continue
+              Sign in to continue to your dashboard
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {error && (
-                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
                   {error}
                 </div>
               )}
@@ -81,7 +86,7 @@ export default function LoginPage() {
                   <Input
                     {...register('email')}
                     type="email"
-                    placeholder="coach@example.com"
+                    placeholder="you@example.com"
                     className="pl-10"
                     error={errors.email?.message}
                   />
@@ -89,13 +94,21 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Password</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Password</label>
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     {...register('password')}
                     type="password"
-                    placeholder="••••••••"
+                    placeholder="Enter your password"
                     className="pl-10"
                     error={errors.password?.message}
                   />
@@ -111,28 +124,41 @@ export default function LoginPage() {
             <div className="mt-6 text-center text-sm text-muted-foreground">
               Don't have an account?{' '}
               <Link href="/auth/register" className="text-primary hover:underline font-medium">
-                Sign up
+                Get started
               </Link>
             </div>
 
-            {/* Demo accounts */}
-            <div className="mt-6 pt-6 border-t border-border">
+            {/* Demo Accounts */}
+            <div className="mt-8 pt-6 border-t border-border">
               <p className="text-xs text-muted-foreground text-center mb-3">
-                Demo accounts for testing:
+                Demo Accounts
               </p>
-              <div className="grid gap-2 text-xs">
-                <div className="flex justify-between p-2 rounded bg-secondary/50">
-                  <span className="text-muted-foreground">Coach:</span>
-                  <span className="font-mono">coach@example.com / coach123</span>
-                </div>
-                <div className="flex justify-between p-2 rounded bg-secondary/50">
-                  <span className="text-muted-foreground">Parent:</span>
-                  <span className="font-mono">parent1@example.com / parent123</span>
-                </div>
+              <div className="grid grid-cols-2 gap-2">
+                {demoAccounts.map((account) => (
+                  <button
+                    key={account.email}
+                    type="button"
+                    onClick={() => {
+                      onSubmit({ email: account.email, password: account.password });
+                    }}
+                    className="p-2 rounded-lg bg-secondary/50 hover:bg-secondary text-xs text-left transition-colors"
+                  >
+                    <span className="font-medium block">{account.role}</span>
+                    <span className="text-muted-foreground">{account.email}</span>
+                  </button>
+                ))}
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          By signing in, you agree to our{' '}
+          <Link href="/terms" className="underline">Terms</Link>
+          {' '}and{' '}
+          <Link href="/privacy" className="underline">Privacy Policy</Link>
+        </p>
       </div>
     </div>
   );

@@ -12,7 +12,7 @@ import {
   LogOut,
   Menu,
   X,
-  Zap,
+  Triangle,
   Crown,
   Search,
 } from 'lucide-react';
@@ -90,8 +90,7 @@ export function Sidebar() {
   const { t, isRTL } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
 
-  // Check if user is admin (for demo, check email)
-  const isAdmin = user?.email === 'admin@elitecoach.com';
+  const isAdmin = user?.email === 'admin@vertex-football.com';
 
   const filteredNavItems = navItems.filter((item) => {
     if (!user) return false;
@@ -133,14 +132,14 @@ export function Sidebar() {
         )}
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
+          {/* Logo - VERTEX BRANDING */}
           <div className="flex items-center gap-3 px-6 py-5 border-b border-border">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary">
-              <Zap className="w-5 h-5 text-primary-foreground" />
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-400">
+              <Triangle className="w-5 h-5 text-primary-foreground fill-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-bold text-lg">Elite Coach</h1>
-              <p className="text-xs text-muted-foreground">Pro Training</p>
+              <h1 className="font-bold text-lg tracking-tight">Vertex</h1>
+              <p className="text-xs text-muted-foreground">Player Development</p>
             </div>
           </div>
 
