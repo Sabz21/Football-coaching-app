@@ -10,7 +10,12 @@ export const config = {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   },
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: [
+      'http://localhost:3000',
+      'https://vertex-football.com',
+      'https://www.vertex-football.com',
+      process.env.FRONTEND_URL,
+    ].filter(Boolean) as string[],
   },
   isProduction: process.env.NODE_ENV === 'production',
   isDevelopment: process.env.NODE_ENV === 'development',
