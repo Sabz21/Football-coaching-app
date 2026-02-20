@@ -42,11 +42,6 @@ export default function LoginPage() {
     }
   };
 
-  const demoAccounts = [
-    { role: 'Coach', email: 'coach@example.com', password: 'coach123' },
-    { role: 'Parent', email: 'parent1@example.com', password: 'parent123' },
-  ];
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       {/* Background gradient */}
@@ -126,28 +121,6 @@ export default function LoginPage() {
               <Link href="/auth/register" className="text-primary hover:underline font-medium">
                 Get started
               </Link>
-            </div>
-
-            {/* Demo Accounts */}
-            <div className="mt-8 pt-6 border-t border-border">
-              <p className="text-xs text-muted-foreground text-center mb-3">
-                Demo Accounts
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {demoAccounts.map((account) => (
-                  <button
-                    key={account.email}
-                    type="button"
-                    onClick={() => {
-                      onSubmit({ email: account.email, password: account.password });
-                    }}
-                    className="p-2 rounded-lg bg-secondary/50 hover:bg-secondary text-xs text-left transition-colors"
-                  >
-                    <span className="font-medium block">{account.role}</span>
-                    <span className="text-muted-foreground">{account.email}</span>
-                  </button>
-                ))}
-              </div>
             </div>
           </CardContent>
         </Card>
