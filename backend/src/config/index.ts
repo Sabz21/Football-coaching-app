@@ -17,6 +17,10 @@ export const config = {
       process.env.FRONTEND_URL,
     ].filter(Boolean) as string[],
   },
+  resend: {
+    apiKey: process.env.RESEND_API_KEY,
+  },
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   isProduction: process.env.NODE_ENV === 'production',
   isDevelopment: process.env.NODE_ENV === 'development',
 };

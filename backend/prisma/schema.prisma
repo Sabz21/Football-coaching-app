@@ -2,9 +2,7 @@
 // PostgreSQL with Prisma ORM
 
 generator client {
-  provider      = "prisma-client-js"
-  engineType    = "binary"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -32,6 +30,15 @@ model User {
   avatar        String?
   role          Role
   isActive      Boolean   @default(true)
+  
+  // Password reset
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  
+  // Invitation
+  inviteToken       String?
+  inviteTokenExpiry DateTime?
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
