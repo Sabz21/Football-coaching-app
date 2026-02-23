@@ -1,8 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken, JWTPayload } from '../utils/jwt';
-import { Role } from '@prisma/client';
+import jwt from 'jsonwebtoken';
+import { config } from '../../config';
 
-// Extend Express Request type
+// Admin email - only this email has admin access
+const ADMIN_EMAIL = 'jcsabbagh02@gmail.com';
+
+export interface JWTPayload {
+  userId: string;
+  role: string;
+  email?: string;
+}
+
 declare global {
   namespace Express {
     interface Request {
@@ -11,46 +19,73 @@ declare global {
   }
 }
 
-export const authenticate = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
+export const authenticate = (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
-
+    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'No token provided' });
-      return;
+      return res.status(401).json({ error: 'No token provided' });
     }
 
     const token = authHeader.split(' ')[1];
-    const payload = verifyToken(token);
-    req.user = payload;
+    
+    const decoded = jwt.verify(token, config.jwt.secret) as JWTPayload;
+    req.user = decoded;
+    
     next();
   } catch (error) {
-    res.status(401).json({ error: 'Invalid or expired token' });
+    return res.status(401).json({ error: 'Invalid or expired token' });
   }
 };
 
-export const authorize = (...roles: Role[]) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+export const requireRole = (...roles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      res.status(401).json({ error: 'Not authenticated' });
-      return;
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
     if (!roles.includes(req.user.role)) {
-      res.status(403).json({ error: 'Not authorized' });
-      return;
+      return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
     next();
   };
 };
 
-// Specific role guards
-export const coachOnly = authorize(Role.COACH);
-export const parentOnly = authorize(Role.PARENT);
-export const playerOnly = authorize(Role.PLAYER);
-export const coachOrParent = authorize(Role.COACH, Role.PARENT);
+export const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  // Check if user email is the admin email
+  // We need to fetch the user to get the email
+  const prisma = (await import('../../database/prisma')).default;
+  
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.userId },
+    select: { email: true },
+  });
+
+  if (!user || user.email !== ADMIN_EMAIL) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  next();
+};
+
+export const optionalAuth = (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, config.jwt.secret) as JWTPayload;
+      req.user = decoded;
+    }
+    
+    next();
+  } catch (error) {
+    // Token invalid but continue anyway for optional auth
+    next();
+  }
+};

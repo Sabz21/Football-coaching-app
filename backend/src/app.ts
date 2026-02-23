@@ -12,6 +12,7 @@ import sessionsRoutes from './modules/sessions/sessions.routes';
 import bookingsRoutes from './modules/bookings/bookings.routes';
 import performanceRoutes from './modules/performance/performance.routes';
 import usersRoutes from './modules/users/users.routes';
+import adminRoutes from './modules/admin/admin.routes';
 
 const app = express();
 
@@ -49,13 +50,22 @@ app.use('/api/sessions', sessionsRoutes);
 app.use('/api/bookings', bookingsRoutes);
 app.use('/api/performance', performanceRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/admin', adminRoutes);
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
   res.json({
-    name: 'Football Coaching Platform API',
+    name: 'Vertex Football API',
     version: '1.0.0',
-    documentation: 'See /api/docs for full API reference',
+    endpoints: {
+      auth: '/api/auth',
+      players: '/api/players',
+      sessions: '/api/sessions',
+      bookings: '/api/bookings',
+      performance: '/api/performance',
+      users: '/api/users',
+      admin: '/api/admin',
+    },
   });
 });
 
