@@ -23,9 +23,14 @@ const translations: Record<string, Record<string, Record<string, string>>> = {
     admin: { title: "Admin", overview: "Vue d'ensemble", coaches: "Coachs", allPlayers: "Tous les joueurs", subscriptions: "Abonnements" },
     settings: { title: "Paramètres", profile: "Profil", language: "Langue" },
   },
+  ar: {
+    common: { loading: "..." /* ... */ },
+    nav: { dashboard: "..." /* ... */ },
+    // ...
+  },
 };
 
-type Locale = 'en' | 'fr';
+type Locale = 'en' | 'fr' | 'ar';
 
 interface I18nContextType {
   locale: Locale;
@@ -37,6 +42,7 @@ interface I18nContextType {
 export const languages: { code: Locale; label: string }[] = [
   { code: 'en', label: 'English' },
   { code: 'fr', label: 'Français' },
+  { code: 'ar', label: 'العربية' },
 ];
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
@@ -46,7 +52,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const saved = localStorage.getItem('locale') as Locale;
-    if (saved === 'en' || saved === 'fr') setLocaleState(saved);
+    if (saved === 'en' || saved === 'fr' || saved === 'ar') setLocaleState(saved);
   }, []);
 
   const setLocale = (newLocale: Locale) => {
