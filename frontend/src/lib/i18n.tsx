@@ -29,9 +29,15 @@ type Locale = 'en' | 'fr';
 
 interface I18nContextType {
   locale: Locale;
+  language: Locale; // alias
   setLocale: (locale: Locale) => void;
   t: (key: string) => string;
 }
+
+export const languages: { code: Locale; label: string }[] = [
+  { code: 'en', label: 'English' },
+  { code: 'fr', label: 'Français' },
+];
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
@@ -65,7 +71,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     return key;
   };
 
-  const contextValue: I18nContextType = { locale, setLocale, t };
+  const contextValue: I18nContextType = {
+    locale,
+    language: locale,
+    setLocale,
+    t,
+  };
 
   return (
     <I18nContext.Provider value={contextValue}>
@@ -79,6 +90,7 @@ export function useI18n(): I18nContextType {
   if (!context) {
     return {
       locale: 'en',
+      language: 'en',
       setLocale: () => {},
       t: (key: string) => {
         const parts = key.split('.');
