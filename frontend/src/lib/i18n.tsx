@@ -30,7 +30,7 @@ const translations: Record<string, Record<string, Record<string, string>>> = {
   },
 };
 
-type Locale = 'en' | 'fr' | 'ar';
+export type Locale = 'en' | 'fr' | 'ar';
 
 interface I18nContextType {
   locale: Locale;

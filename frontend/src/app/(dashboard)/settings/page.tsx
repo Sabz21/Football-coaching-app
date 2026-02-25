@@ -19,13 +19,23 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth-store';
-import { useI18n, languages, Language } from '@/lib/i18n';
+import { useI18n, languages, type Locale } from "@/lib/i18n";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+
+const getFlagEmoji = (locale: string) => {
+  const map: Record<string, string> = {
+    en: "🇬🇧",
+    fr: "🇫🇷",
+    ar: "🇸🇦", // si tu ajoutes l’arabe plus tard
+  };
+
+  return map[locale] ?? "🌐";
+};
 
 // Schemas
 const profileSchema = z.object({
@@ -53,7 +63,7 @@ const passwordSchema = z.object({
 });
 
 export default function SettingsPage() {
-  const { t, language, setLanguage } = useI18n();
+  const { t, language, setLocale } = useI18n();
   const { user, fetchProfile } = useAuthStore();
   const queryClient = useQueryClient();
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -376,7 +386,7 @@ export default function SettingsPage() {
                   {languages.map((lang) => (
                     <button
                       key={lang.code}
-                      onClick={() => setLanguage(lang.code)}
+                      onClick={() => setLocale(lang.code)}
                       className={cn(
                         'p-4 rounded-xl border-2 text-center transition-all',
                         language === lang.code
@@ -384,8 +394,12 @@ export default function SettingsPage() {
                           : 'border-border hover:border-primary/50'
                       )}
                     >
-                      <span className="text-2xl block mb-2">{lang.flag}</span>
-                      <span className="text-sm font-medium">{lang.name}</span>
+                      <span className="text-2xl block mb-2">
+  {getFlagEmoji(lang.code)}
+</span>
+<span className="text-sm font-medium">
+  {lang.label}
+</span>
                     </button>
                   ))}
                 </div>
