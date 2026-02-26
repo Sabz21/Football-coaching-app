@@ -28,7 +28,6 @@ export default function SessionsPage() {
   const getLocale = () => {
     switch (language) {
       case 'fr': return fr;
-      case 'ar': return ar;
       default: return enUS;
     }
   };
