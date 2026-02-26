@@ -87,7 +87,8 @@ const navItems: NavItem[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
-  const { t, isRTL } = useI18n();
+  const { t } = useI18n();
+  const isRTL = false; 
   const [isOpen, setIsOpen] = useState(false);
 
   const isAdmin = user?.email === 'admin@vertex-football.com';
@@ -209,7 +210,8 @@ export function Sidebar() {
 }
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
-  const { isRTL } = useI18n();
+  const { t } = useI18n();
+const isRTL = false;
   
   return (
     <div className="min-h-screen bg-background" dir={isRTL ? 'rtl' : 'ltr'}>
