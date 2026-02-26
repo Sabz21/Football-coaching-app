@@ -91,7 +91,7 @@ export function Sidebar() {
   const isRTL = false; 
   const [isOpen, setIsOpen] = useState(false);
 
-  const isAdmin = user?.email === 'admin@vertex-football.com';
+  const isAdmin = user?.email === 'jcsabbagh02@gmail.com';
 
   const filteredNavItems = navItems.filter((item) => {
     if (!user) return false;

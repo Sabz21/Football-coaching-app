@@ -64,13 +64,13 @@ export default function AdminPage() {
 
   // Check if user is super admin
   // In production, this would be a separate role check
-  const isSuperAdmin = user?.email === 'admin@elitecoach.com' || user?.role === 'COACH';
+  const isSuperAdmin = user?.email === 'jcsabbagh02@gmail.com';
 
   const { data: adminStats, isLoading: statsLoading } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: async () => {
       // This would be a dedicated admin endpoint
-      const response = await api.get('/users/admin/stats');
+      const response = await api.get('/admin/overview');
       return response.data;
     },
     enabled: isSuperAdmin,
@@ -79,7 +79,7 @@ export default function AdminPage() {
   const { data: coaches, isLoading: coachesLoading } = useQuery({
     queryKey: ['admin-coaches', search],
     queryFn: async () => {
-      const response = await api.get('/users/admin/coaches', { params: { search } });
+      const response = await api.get('/admin/coaches', { params: { search } });
       return response.data;
     },
     enabled: isSuperAdmin,
