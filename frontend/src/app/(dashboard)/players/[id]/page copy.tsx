@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Save, User, Mail, Phone, Calendar, Ruler, Weight, Shirt, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Save, User, Mail, Phone, Calendar, Ruler, Weight, Shirt } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,11 +24,8 @@ const POSITIONS = [
 
 const PREFERRED_FOOT = ['Right', 'Left', 'Both'];
 
-export default function EditPlayerPage() {
-  const params = useParams();
+export default function NewPlayerPage() {
   const router = useRouter();
-  const playerId = params.id as string;
-  
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     firstName: '',
@@ -46,84 +43,34 @@ export default function EditPlayerPage() {
     parentPhone: '',
   });
 
-  // Fetch player data
-  const { data: player, isLoading } = useQuery({
-    queryKey: ['player', playerId],
-    queryFn: async () => {
-      const res = await api.get(`/players/${playerId}`);
-      return res.data;
-    },
-  });
-
-  // Populate form when player data loads
-  useEffect(() => {
-    if (player) {
-      setFormData({
-        firstName: player.firstName || '',
-        lastName: player.lastName || '',
-        email: player.email || '',
-        phone: player.phone || '',
-        dateOfBirth: player.dateOfBirth ? player.dateOfBirth.split('T')[0] : '',
-        position: player.position || '',
-        preferredFoot: player.preferredFoot || '',
-        height: player.height?.toString() || '',
-        weight: player.weight?.toString() || '',
-        jerseyNumber: player.jerseyNumber?.toString() || '',
-        parentName: player.parentName || '',
-        parentEmail: player.parentEmail || '',
-        parentPhone: player.parentPhone || '',
-      });
-    }
-  }, [player]);
-
-  const updateMutation = useMutation({
+  const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const res = await api.put(`/players/${playerId}`, data);
+      const res = await api.post('/players', data);
       return res.data;
     },
-    onSuccess: () => {
-      router.push(`/players/${playerId}`);
+    onSuccess: (data) => {
+      router.push(`/players/${data.id}`);
     },
     onError: (err: any) => {
-      setError(err.response?.data?.error || 'Failed to update player');
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      return api.delete(`/players/${playerId}`);
-    },
-    onSuccess: () => {
-      router.push('/players');
-    },
-    onError: (err: any) => {
-      setError(err.response?.data?.error || 'Failed to delete player');
+      setError(err.response?.data?.error || 'Failed to create player');
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    updateMutation.mutate(formData);
-  };
 
-  const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this player? This action cannot be undone.')) {
-      deleteMutation.mutate();
+    if (!formData.firstName || !formData.lastName) {
+      setError('First name and last name are required');
+      return;
     }
+
+    createMutation.mutate(formData);
   };
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6 animate-in max-w-3xl">
@@ -132,16 +79,10 @@ export default function EditPlayerPage() {
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold tracking-tight">Edit Player</h1>
-          <p className="text-muted-foreground">
-            {player?.firstName} {player?.lastName}
-          </p>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Add Player</h1>
+          <p className="text-muted-foreground">Create a new player profile</p>
         </div>
-        <Button variant="destructive" size="sm" onClick={handleDelete}>
-          <Trash2 className="w-4 h-4 mr-2" />
-          Delete
-        </Button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -158,12 +99,14 @@ export default function EditPlayerPage() {
               <User className="w-5 h-5" />
               Basic Information
             </CardTitle>
+            <CardDescription>Player's personal details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">First Name *</label>
                 <Input
+                  placeholder="John"
                   value={formData.firstName}
                   onChange={(e) => updateField('firstName', e.target.value)}
                   required
@@ -172,6 +115,7 @@ export default function EditPlayerPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Last Name *</label>
                 <Input
+                  placeholder="Doe"
                   value={formData.lastName}
                   onChange={(e) => updateField('lastName', e.target.value)}
                   required
@@ -186,6 +130,7 @@ export default function EditPlayerPage() {
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     type="email"
+                    placeholder="player@email.com"
                     className="pl-10"
                     value={formData.email}
                     onChange={(e) => updateField('email', e.target.value)}
@@ -198,6 +143,7 @@ export default function EditPlayerPage() {
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     type="tel"
+                    placeholder="+1 234 567 890"
                     className="pl-10"
                     value={formData.phone}
                     onChange={(e) => updateField('phone', e.target.value)}
@@ -228,6 +174,7 @@ export default function EditPlayerPage() {
               <Shirt className="w-5 h-5" />
               Football Information
             </CardTitle>
+            <CardDescription>Position and physical attributes</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -266,24 +213,35 @@ export default function EditPlayerPage() {
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Height (cm)</label>
-                <Input
-                  type="number"
-                  value={formData.height}
-                  onChange={(e) => updateField('height', e.target.value)}
-                />
+                <div className="relative">
+                  <Ruler className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="number"
+                    placeholder="175"
+                    className="pl-10"
+                    value={formData.height}
+                    onChange={(e) => updateField('height', e.target.value)}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Weight (kg)</label>
-                <Input
-                  type="number"
-                  value={formData.weight}
-                  onChange={(e) => updateField('weight', e.target.value)}
-                />
+                <div className="relative">
+                  <Weight className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="number"
+                    placeholder="70"
+                    className="pl-10"
+                    value={formData.weight}
+                    onChange={(e) => updateField('weight', e.target.value)}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Jersey #</label>
                 <Input
                   type="number"
+                  placeholder="10"
                   value={formData.jerseyNumber}
                   onChange={(e) => updateField('jerseyNumber', e.target.value)}
                 />
@@ -296,11 +254,13 @@ export default function EditPlayerPage() {
         <Card>
           <CardHeader>
             <CardTitle>Parent/Guardian Information</CardTitle>
+            <CardDescription>For players under 18</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Parent Name</label>
               <Input
+                placeholder="Parent full name"
                 value={formData.parentName}
                 onChange={(e) => updateField('parentName', e.target.value)}
               />
@@ -310,6 +270,7 @@ export default function EditPlayerPage() {
                 <label className="text-sm font-medium">Parent Email</label>
                 <Input
                   type="email"
+                  placeholder="parent@email.com"
                   value={formData.parentEmail}
                   onChange={(e) => updateField('parentEmail', e.target.value)}
                 />
@@ -318,6 +279,7 @@ export default function EditPlayerPage() {
                 <label className="text-sm font-medium">Parent Phone</label>
                 <Input
                   type="tel"
+                  placeholder="+1 234 567 890"
                   value={formData.parentPhone}
                   onChange={(e) => updateField('parentPhone', e.target.value)}
                 />
@@ -331,9 +293,9 @@ export default function EditPlayerPage() {
           <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={updateMutation.isPending}>
+          <Button type="submit" disabled={createMutation.isPending}>
             <Save className="w-4 h-4 mr-2" />
-            {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+            {createMutation.isPending ? 'Creating...' : 'Create Player'}
           </Button>
         </div>
       </form>
