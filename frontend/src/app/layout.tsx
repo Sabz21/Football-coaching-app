@@ -1,21 +1,13 @@
 import type { Metadata } from 'next';
-import { GeistSans } from 'geist/font/sans';
-import { GeistMono } from 'geist/font/mono';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 
+const inter = Inter({ subsets: ['latin'] });
+
 export const metadata: Metadata = {
-  title: 'Vertex - Football Player Development Platform',
-  description: 'The intelligent platform for football player development. Track progress, get AI-powered training recommendations, and unlock every player\'s potential.',
-  keywords: ['football', 'coaching', 'player development', 'training', 'sports tech'],
-  authors: [{ name: 'Vertex Football' }],
-  openGraph: {
-    title: 'Vertex - Football Player Development Platform',
-    description: 'The intelligent platform for football player development.',
-    url: 'https://vertex-football.com',
-    siteName: 'Vertex',
-    type: 'website',
-  },
+  title: 'Vertex Football',
+  description: 'Personal Training & Team Management Platform for Football Coaches',
 };
 
 export default function RootLayout({
@@ -25,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}>
+      <body className={inter.className}>
         <Providers>{children}</Providers>
       </body>
     </html>

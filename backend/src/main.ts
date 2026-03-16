@@ -1,42 +1,13 @@
 import app from './app';
 import { config } from './config';
-import prisma from './database/prisma';
 
-async function main() {
-  try {
-    // Test database connection
-    await prisma.$connect();
-    console.log('✅ Database connected');
+const PORT = config.port;
 
-    // Start server
-    app.listen(config.port, '0.0.0.0', () => {
-      console.log(`
-🚀 Football Coaching Platform API
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📍 Server:      http://localhost:${config.port}
+app.listen(PORT, () => {
+  console.log(`
+🚀 Vertex Football API v2.0.0
+📍 Server running on port ${PORT}
 🌍 Environment: ${config.nodeEnv}
-📚 API Docs:    http://localhost:${config.port}/api
-❤️  Health:     http://localhost:${config.port}/health
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      `);
-    });
-  } catch (error) {
-    console.error('❌ Failed to start server:', error);
-    process.exit(1);
-  }
-}
-
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('\n🛑 Shutting down...');
-  await prisma.$disconnect();
-  process.exit(0);
+⏰ Started at: ${new Date().toISOString()}
+  `);
 });
-
-process.on('SIGTERM', async () => {
-  console.log('\n🛑 Shutting down...');
-  await prisma.$disconnect();
-  process.exit(0);
-});
-
-main();

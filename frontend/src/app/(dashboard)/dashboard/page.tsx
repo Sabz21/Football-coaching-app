@@ -1,306 +1,262 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Users, Calendar, Clock, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
+import { Calendar, Users, UsersRound, Trophy, Plus, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth-store';
-import { useI18n } from '@/lib/i18n';
-import { usersApi } from '@/lib/api';
-import { StatCard } from '@/components/dashboard/stat-card';
-import { SessionCard } from '@/components/sessions/session-card';
-import { PlayerCardCompact } from '@/components/players/player-card';
+import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { formatDate } from '@/lib/utils';
+import { getInitials, formatDate, formatTime, getMatchResult, getResultBadgeColor } from '@/lib/utils';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
-  const { t } = useI18n();
 
-  if (user?.role === 'COACH') {
-    return <CoachDashboard />;
-  }
-
-  if (user?.role === 'PARENT') {
-    return <ParentDashboard />;
-  }
-
-  return <div>Loading...</div>;
-}
-
-function CoachDashboard() {
-  const { t } = useI18n();
-  const router = useRouter();
+  // Fetch today's sessions
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
   
-  const { data, isLoading } = useQuery({
-    queryKey: ['coach-dashboard'],
-    queryFn: usersApi.getCoachDashboard,
+  const { data: sessions } = useQuery({
+    queryKey: ['sessions', 'today'],
+    queryFn: async () => {
+      const res = await api.get('/sessions', {
+        params: { from: todayStr, to: todayStr },
+      });
+      return res.data;
+    },
   });
 
-  if (isLoading) {
-    return <DashboardSkeleton />;
-  }
+  // Fetch players count
+  const { data: players } = useQuery({
+    queryKey: ['players'],
+    queryFn: async () => {
+      const res = await api.get('/players');
+      return res.data;
+    },
+  });
+
+  // Fetch teams
+  const { data: teams } = useQuery({
+    queryKey: ['teams'],
+    queryFn: async () => {
+      const res = await api.get('/teams');
+      return res.data;
+    },
+  });
+
+  // Fetch upcoming matches
+  const { data: matches } = useQuery({
+    queryKey: ['matches', 'upcoming'],
+    queryFn: async () => {
+      const res = await api.get('/matches', {
+        params: { from: todayStr },
+      });
+      return res.data;
+    },
+  });
+
+  const upcomingMatches = matches?.slice(0, 3) || [];
 
   return (
-    <div className="space-y-8 animate-in">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('dashboard.title')}</h1>
-        <p className="text-muted-foreground mt-1">{t('dashboard.welcome')}</p>
+    <div className="space-y-6 animate-in">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Welcome back, {user?.firstName}! 👋
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Here's what's happening with your coaching today.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link href="/calendar">
+            <Button variant="outline">
+              <Calendar className="w-4 h-4 mr-2" />
+              Calendar
+            </Button>
+          </Link>
+          <Link href="/players/new">
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Player
+            </Button>
+          </Link>
+        </div>
       </div>
 
-      {/* Stats Grid - Now Clickable */}
+      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title={t('dashboard.totalPlayers')}
-          value={data?.stats.totalPlayers || 0}
-          subtitle={`${data?.stats.activePlayers || 0} ${t('dashboard.activePlayers')}`}
-          icon={Users}
-          href="/players"
-        />
-        <StatCard
-          title={t('dashboard.upcomingSessions')}
-          value={data?.stats.upcomingSessions || 0}
-          subtitle={t('dashboard.thisWeek')}
-          icon={Calendar}
-          href="/sessions"
-        />
-        <StatCard
-          title={t('dashboard.pendingBookings')}
-          value={data?.stats.pendingBookings || 0}
-          subtitle={t('dashboard.awaitingConfirmation')}
-          icon={AlertCircle}
-          href="/bookings"
-        />
-        <StatCard
-          title={t('dashboard.completedSessions')}
-          value={data?.stats.completedSessions || 0}
-          subtitle={t('dashboard.allTime')}
-          icon={CheckCircle}
-          href="/performance"
-        />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Today's Sessions - Clickable */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-primary" />
-              {t('dashboard.todaySessions')}
-            </CardTitle>
-            <Link href="/sessions" className="text-sm text-primary hover:underline">
-              View all →
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {data?.todaySessions && data.todaySessions.length > 0 ? (
-              <div className="space-y-3">
-                {data.todaySessions.map((session: any) => (
-                  <div
-                    key={session.id}
-                    onClick={() => router.push(`/sessions/${session.id}`)}
-                    className="cursor-pointer"
-                  >
-                    <SessionCard session={session} />
-                  </div>
-                ))}
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Today's Sessions</p>
+                <p className="text-3xl font-bold mt-1">{sessions?.length || 0}</p>
               </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>{t('dashboard.noSessionsToday')}</p>
+              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Calendar className="h-6 w-6 text-primary" />
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 
-        {/* Recent Reports */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Players</p>
+                <p className="text-3xl font-bold mt-1">{players?.length || 0}</p>
+              </div>
+              <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                <Users className="h-6 w-6 text-blue-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Teams</p>
+                <p className="text-3xl font-bold mt-1">{teams?.length || 0}</p>
+              </div>
+              <div className="h-12 w-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                <UsersRound className="h-6 w-6 text-purple-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Upcoming Matches</p>
+                <p className="text-3xl font-bold mt-1">{upcomingMatches.length}</p>
+              </div>
+              <div className="h-12 w-12 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+                <Trophy className="h-6 w-6 text-yellow-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Today's Sessions */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              {t('dashboard.recentReports')}
-            </CardTitle>
-            <Link href="/performance" className="text-sm text-primary hover:underline">
-              View all →
+            <CardTitle className="text-lg">Today's Sessions</CardTitle>
+            <Link href="/calendar">
+              <Button variant="ghost" size="sm">
+                View all <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
             </Link>
           </CardHeader>
           <CardContent>
-            {data?.recentReports && data.recentReports.length > 0 ? (
+            {sessions?.length > 0 ? (
               <div className="space-y-3">
-                {data.recentReports.map((report: any) => (
+                {sessions.slice(0, 4).map((session: any) => (
                   <Link
-                    key={report.id}
-                    href={`/players/${report.player.id}`}
-                    className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+                    key={session.id}
+                    href={`/sessions/${session.id}`}
+                    className="flex items-center gap-4 p-3 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
                   >
-                    <div>
-                      <p className="font-medium">
-                        {report.player.firstName} {report.player.lastName}
-                      </p>
+                    <div className="flex-1">
+                      <p className="font-medium">{session.title || 'Training Session'}</p>
                       <p className="text-sm text-muted-foreground">
-                        {formatDate(report.session.date)}
+                        {formatTime(session.startTime)} - {formatTime(session.endTime)} • {session.location}
                       </p>
                     </div>
-                    <div className="flex gap-2">
-                      <Badge variant="secondary">Effort: {report.effortRating}/10</Badge>
+                    <div className="flex -space-x-2">
+                      {session.players?.slice(0, 3).map((sp: any) => (
+                        <Avatar key={sp.player.id} className="w-8 h-8 border-2 border-background">
+                          <AvatarFallback className="text-xs bg-primary/20 text-primary">
+                            {getInitials(sp.player.firstName, sp.player.lastName)}
+                          </AvatarFallback>
+                        </Avatar>
+                      ))}
+                      {session.players?.length > 3 && (
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs border-2 border-background">
+                          +{session.players.length - 3}
+                        </div>
+                      )}
                     </div>
                   </Link>
                 ))}
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                <TrendingUp className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>{t('dashboard.noRecentReports')}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function ParentDashboard() {
-  const { t } = useI18n();
-  const router = useRouter();
-  
-  const { data, isLoading } = useQuery({
-    queryKey: ['parent-dashboard'],
-    queryFn: usersApi.getParentDashboard,
-  });
-
-  if (isLoading) {
-    return <DashboardSkeleton />;
-  }
-
-  return (
-    <div className="space-y-8 animate-in">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('dashboard.title')}</h1>
-        <p className="text-muted-foreground mt-1">Track your children's progress</p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <StatCard
-          title="Your Children"
-          value={data?.stats.totalChildren || 0}
-          icon={Users}
-          href="/players"
-        />
-        <StatCard
-          title={t('dashboard.upcomingSessions')}
-          value={data?.stats.upcomingBookingsCount || 0}
-          icon={Calendar}
-          href="/bookings"
-        />
-        <StatCard
-          title={t('dashboard.completedSessions')}
-          value={data?.stats.completedSessions || 0}
-          icon={CheckCircle}
-          href="/performance"
-        />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Children */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Children</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data?.children && data.children.length > 0 ? (
-              <div className="space-y-2">
-                {data.children.map((child: any) => (
-                  <PlayerCardCompact key={child.id} player={child} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>No children registered yet</p>
+                <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>No sessions scheduled for today</p>
+                <Link href="/calendar">
+                  <Button variant="link" className="mt-2">
+                    Schedule a session
+                  </Button>
+                </Link>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Upcoming Bookings */}
+        {/* Upcoming Matches */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>{t('dashboard.upcomingSessions')}</CardTitle>
-            <Link href="/bookings" className="text-sm text-primary hover:underline">
-              View all →
+            <CardTitle className="text-lg">Upcoming Matches</CardTitle>
+            <Link href="/matches">
+              <Button variant="ghost" size="sm">
+                View all <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
             </Link>
           </CardHeader>
           <CardContent>
-            {data?.upcomingBookings && data.upcomingBookings.length > 0 ? (
+            {upcomingMatches.length > 0 ? (
               <div className="space-y-3">
-                {data.upcomingBookings.map((booking: any) => (
-                  <div
-                    key={booking.id}
-                    className="p-3 rounded-lg bg-secondary/50 cursor-pointer hover:bg-secondary transition-colors"
-                    onClick={() => router.push(`/sessions/${booking.session.id}`)}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium">
-                        {booking.player.firstName}
-                      </span>
-                      <Badge
-                        variant={booking.status === 'CONFIRMED' ? 'success' : 'warning'}
-                      >
-                        {booking.status}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDate(booking.session.date)} • {booking.session.location}
-                    </p>
-                  </div>
-                ))}
+                {upcomingMatches.map((match: any) => {
+                  const result = getMatchResult(match.goalsFor, match.goalsAgainst);
+                  return (
+                    <Link
+                      key={match.id}
+                      href={`/matches/${match.id}`}
+                      className="flex items-center gap-4 p-3 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">
+                            {match.isHome ? `vs ${match.opponent}` : `@ ${match.opponent}`}
+                          </p>
+                          {match.status === 'COMPLETED' && (
+                            <Badge className={getResultBadgeColor(result)}>
+                              {match.goalsFor} - {match.goalsAgainst}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {formatDate(match.date)} {match.time && `• ${formatTime(match.time)}`}
+                        </p>
+                      </div>
+                      <Badge variant="outline">{match.team?.name}</Badge>
+                    </Link>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>No upcoming sessions</p>
+                <Trophy className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>No upcoming matches</p>
+                <Link href="/matches/new">
+                  <Button variant="link" className="mt-2">
+                    Schedule a match
+                  </Button>
+                </Link>
               </div>
             )}
           </CardContent>
         </Card>
-      </div>
-
-      {/* Find a Coach Section */}
-      <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
-        <CardContent className="py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">Find a Coach</h3>
-              <p className="text-muted-foreground">Browse coaches, read reviews, and book sessions</p>
-            </div>
-            <Link
-              href="/coaches"
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              Browse Coaches →
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function DashboardSkeleton() {
-  return (
-    <div className="space-y-8">
-      <div>
-        <div className="h-9 w-48 bg-secondary rounded animate-pulse" />
-        <div className="h-5 w-64 bg-secondary rounded animate-pulse mt-2" />
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-32 bg-card rounded-xl border animate-pulse" />
-        ))}
       </div>
     </div>
   );

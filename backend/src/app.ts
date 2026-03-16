@@ -8,11 +8,10 @@ import { errorHandler, notFoundHandler } from './common/middleware/error';
 // Import routes
 import authRoutes from './modules/auth/auth.routes';
 import playersRoutes from './modules/players/players.routes';
+import notesRoutes from './modules/notes/notes.routes';
 import sessionsRoutes from './modules/sessions/sessions.routes';
-import bookingsRoutes from './modules/bookings/bookings.routes';
-import performanceRoutes from './modules/performance/performance.routes';
-import usersRoutes from './modules/users/users.routes';
-import adminRoutes from './modules/admin/admin.routes';
+import teamsRoutes from './modules/teams/teams.routes';
+import matchesRoutes from './modules/matches/matches.routes';
 
 const app = express();
 
@@ -40,31 +39,31 @@ app.get('/health', (req, res) => {
     status: 'ok', 
     timestamp: new Date().toISOString(),
     environment: config.nodeEnv,
+    version: '2.0.0',
   });
 });
 
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/players', playersRoutes);
+app.use('/api/notes', notesRoutes);
 app.use('/api/sessions', sessionsRoutes);
-app.use('/api/bookings', bookingsRoutes);
-app.use('/api/performance', performanceRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/teams', teamsRoutes);
+app.use('/api/matches', matchesRoutes);
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
   res.json({
     name: 'Vertex Football API',
-    version: '1.0.0',
+    version: '2.0.0',
+    description: 'Personal Training + Team Management Platform',
     endpoints: {
       auth: '/api/auth',
       players: '/api/players',
+      notes: '/api/notes',
       sessions: '/api/sessions',
-      bookings: '/api/bookings',
-      performance: '/api/performance',
-      users: '/api/users',
-      admin: '/api/admin',
+      teams: '/api/teams',
+      matches: '/api/matches',
     },
   });
 });

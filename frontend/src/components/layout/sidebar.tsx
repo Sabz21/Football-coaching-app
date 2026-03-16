@@ -6,107 +6,40 @@ import {
   LayoutDashboard,
   Users,
   Calendar,
-  ClipboardList,
-  TrendingUp,
+  UsersRound,
+  Trophy,
   Settings,
   LogOut,
   Menu,
   X,
   Triangle,
-  Crown,
-  Search,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/lib/auth-store';
-import { useI18n } from '@/lib/i18n';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { getInitials } from '@/lib/utils';
 
-interface NavItem {
-  href: string;
-  labelKey: string;
-  icon: React.ElementType;
-  roles: ('COACH' | 'PARENT' | 'PLAYER' | 'ADMIN')[];
-  adminOnly?: boolean;
-}
-
-const navItems: NavItem[] = [
-  {
-    href: '/dashboard',
-    labelKey: 'nav.dashboard',
-    icon: LayoutDashboard,
-    roles: ['COACH', 'PARENT', 'PLAYER', 'ADMIN'],
-  },
-  {
-    href: '/admin',
-    labelKey: 'nav.admin',
-    icon: Crown,
-    roles: ['ADMIN', 'COACH'],
-    adminOnly: true,
-  },
-  {
-    href: '/coaches',
-    labelKey: 'nav.coaches',
-    icon: Search,
-    roles: ['PARENT', 'PLAYER'],
-  },
-  {
-    href: '/players',
-    labelKey: 'nav.players',
-    icon: Users,
-    roles: ['COACH'],
-  },
-  {
-    href: '/sessions',
-    labelKey: 'nav.sessions',
-    icon: Calendar,
-    roles: ['COACH', 'PARENT'],
-  },
-  {
-    href: '/bookings',
-    labelKey: 'nav.bookings',
-    icon: ClipboardList,
-    roles: ['COACH', 'PARENT'],
-  },
-  {
-    href: '/performance',
-    labelKey: 'nav.performance',
-    icon: TrendingUp,
-    roles: ['COACH', 'PARENT', 'PLAYER'],
-  },
-  {
-    href: '/settings',
-    labelKey: 'nav.settings',
-    icon: Settings,
-    roles: ['COACH', 'PARENT', 'PLAYER', 'ADMIN'],
-  },
+const navItems = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/calendar', label: 'Calendar', icon: Calendar },
+  { href: '/players', label: 'Players', icon: Users },
+  { href: '/teams', label: 'Teams', icon: UsersRound },
+  { href: '/matches', label: 'Matches', icon: Trophy },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
-  const { t } = useI18n();
-  const isRTL = false; 
   const [isOpen, setIsOpen] = useState(false);
-
-  const isAdmin = user?.email === 'jcsabbagh02@gmail.com';
-
-  const filteredNavItems = navItems.filter((item) => {
-    if (!user) return false;
-    if (item.adminOnly && !isAdmin && user.role !== 'COACH') return false;
-    return item.roles.includes(user.role as any);
-  });
 
   return (
     <>
       {/* Mobile menu button */}
       <button
-        className={cn(
-          "fixed top-4 z-50 lg:hidden p-2 rounded-lg bg-card border border-border",
-          isRTL ? "right-4" : "left-4"
-        )}
+        className="fixed top-4 left-4 z-50 lg:hidden p-2 rounded-lg bg-card border border-border"
         onClick={() => setIsOpen(!isOpen)}
       >
         {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -123,30 +56,25 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed top-0 z-40 h-screen w-64 bg-card border-border transition-transform duration-300 lg:translate-x-0',
-          isRTL ? 'right-0 border-l' : 'left-0 border-r',
-          isOpen 
-            ? 'translate-x-0' 
-            : isRTL 
-              ? 'translate-x-full' 
-              : '-translate-x-full'
+          'fixed top-0 left-0 z-40 h-screen w-64 bg-card border-r border-border transition-transform duration-300 lg:translate-x-0',
+          isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         <div className="flex flex-col h-full">
-          {/* Logo - VERTEX BRANDING */}
+          {/* Logo */}
           <div className="flex items-center gap-3 px-6 py-5 border-b border-border">
             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-400">
               <Triangle className="w-5 h-5 text-primary-foreground fill-primary-foreground" />
             </div>
             <div>
               <h1 className="font-bold text-lg tracking-tight">Vertex</h1>
-              <p className="text-xs text-muted-foreground">Player Development</p>
+              <p className="text-xs text-muted-foreground">Football Coach</p>
             </div>
           </div>
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-            {filteredNavItems.map((item) => {
+            {navItems.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
               const Icon = item.icon;
 
@@ -159,17 +87,13 @@ export function Sidebar() {
                     'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all',
                     isActive
                       ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
-                    item.adminOnly && 'border border-dashed border-primary/30'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                   )}
                 >
                   <Icon className="w-5 h-5" />
-                  {t(item.labelKey)}
+                  {item.label}
                   {isActive && (
-                    <div className={cn(
-                      "w-1.5 h-1.5 rounded-full bg-primary",
-                      isRTL ? "mr-auto" : "ml-auto"
-                    )} />
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary ml-auto" />
                   )}
                 </Link>
               );
@@ -189,9 +113,7 @@ export function Sidebar() {
                 <p className="text-sm font-medium truncate">
                   {user?.firstName} {user?.lastName}
                 </p>
-                <p className="text-xs text-muted-foreground capitalize">
-                  {user?.role?.toLowerCase()}
-                </p>
+                <p className="text-xs text-muted-foreground">Coach</p>
               </div>
               <Button
                 variant="ghost"
@@ -210,16 +132,10 @@ export function Sidebar() {
 }
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
-  const { t } = useI18n();
-const isRTL = false;
-  
   return (
-    <div className="min-h-screen bg-background" dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen bg-background">
       <Sidebar />
-      <main className={cn(
-        "lg:pl-64",
-        isRTL && "lg:pl-0 lg:pr-64"
-      )}>
+      <main className="lg:pl-64">
         <div className="container mx-auto px-4 py-6 lg:px-8 lg:py-8">
           {children}
         </div>

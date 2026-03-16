@@ -1,150 +1,258 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { playerService } from './players.service';
-import { authenticate, coachOnly, coachOrParent } from '../../common/middleware/auth';
-import { z } from 'zod';
 import prisma from '../../database/prisma';
-import { Role } from '@prisma/client';
+import { authenticate, requireCoach } from '../../common/middleware/auth';
+import { AppError } from '../../common/middleware/error';
 
 const router = Router();
 
-// Validation schemas
-const createPlayerSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  dateOfBirth: z.string().transform((val) => new Date(val)),
-  position: z.string().optional(),
-  preferredFoot: z.enum(['Left', 'Right', 'Both']).optional(),
-  height: z.number().positive().optional(),
-  weight: z.number().positive().optional(),
-  notes: z.string().optional(),
-  parentId: z.string().optional(),
-});
+router.use(authenticate);
+router.use(requireCoach);
 
-// Helper to get coach profile ID
-async function getCoachId(userId: string): Promise<string> {
-  const coach = await prisma.coach.findUnique({ where: { userId } });
-  if (!coach) throw new Error('Coach profile not found');
-  return coach.id;
-}
-
-// Helper to get parent profile ID
-async function getParentId(userId: string): Promise<string> {
-  const parent = await prisma.parent.findUnique({ where: { userId } });
-  if (!parent) throw new Error('Parent profile not found');
-  return parent.id;
-}
-
-// GET /api/players - List all players (coach) or children (parent)
-router.get('/', authenticate, coachOrParent, async (req: Request, res: Response, next: NextFunction) => {
+// GET /api/players - Get all players for coach
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { search, isActive, limit, offset } = req.query;
+    const coach = await prisma.coach.findUnique({
+      where: { userId: req.user!.userId },
+    });
 
-    if (req.user!.role === Role.COACH) {
-      const coachId = await getCoachId(req.user!.userId);
-      const result = await playerService.findAll(coachId, {
-        search: search as string,
-        isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
-        limit: limit ? parseInt(limit as string) : undefined,
-        offset: offset ? parseInt(offset as string) : undefined,
-      });
-      res.json(result);
-    } else {
-      const parentId = await getParentId(req.user!.userId);
-      const players = await playerService.findByParent(parentId);
-      res.json({ players, total: players.length });
+    if (!coach) {
+      throw new AppError('Coach profile not found', 404);
     }
+
+    const players = await prisma.player.findMany({
+      where: { coachId: coach.id, isActive: true },
+      include: {
+        _count: {
+          select: {
+            notes: true,
+            sessions: true,
+            teamMemberships: true,
+          },
+        },
+      },
+      orderBy: { firstName: 'asc' },
+    });
+
+    res.json(players);
   } catch (error) {
     next(error);
   }
 });
 
-// POST /api/players - Create player (coach only)
-router.post('/', authenticate, coachOnly, async (req: Request, res: Response, next: NextFunction) => {
+// GET /api/players/:id - Get single player
+router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = createPlayerSchema.parse(req.body);
-    const coachId = await getCoachId(req.user!.userId);
-    const player = await playerService.create({ ...data, coachId });
+    const { id } = req.params;
+
+    const coach = await prisma.coach.findUnique({
+      where: { userId: req.user!.userId },
+    });
+
+    if (!coach) {
+      throw new AppError('Coach profile not found', 404);
+    }
+
+    const player = await prisma.player.findFirst({
+      where: { id, coachId: coach.id },
+      include: {
+        notes: {
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+          include: {
+            session: {
+              select: { id: true, date: true, title: true },
+            },
+          },
+        },
+        sessions: {
+          include: {
+            session: true,
+          },
+          orderBy: { session: { date: 'desc' } },
+          take: 10,
+        },
+        teamMemberships: {
+          where: { isActive: true },
+          include: {
+            team: true,
+          },
+        },
+        matchStats: {
+          orderBy: { match: { date: 'desc' } },
+          take: 10,
+          include: {
+            match: {
+              select: { id: true, date: true, opponent: true, goalsFor: true, goalsAgainst: true },
+            },
+          },
+        },
+        _count: {
+          select: {
+            notes: true,
+            sessions: true,
+            manOfTheMatch: true,
+          },
+        },
+      },
+    });
+
+    if (!player) {
+      throw new AppError('Player not found', 404);
+    }
+
+    res.json(player);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/players - Create player
+router.post('/', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const coach = await prisma.coach.findUnique({
+      where: { userId: req.user!.userId },
+    });
+
+    if (!coach) {
+      throw new AppError('Coach profile not found', 404);
+    }
+
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      dateOfBirth,
+      position,
+      preferredFoot,
+      height,
+      weight,
+      jerseyNumber,
+      parentName,
+      parentEmail,
+      parentPhone,
+    } = req.body;
+
+    if (!firstName || !lastName) {
+      throw new AppError('First name and last name are required', 400);
+    }
+
+    const player = await prisma.player.create({
+      data: {
+        coachId: coach.id,
+        firstName,
+        lastName,
+        email,
+        phone,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+        position,
+        preferredFoot,
+        height: height ? parseInt(height) : null,
+        weight: weight ? parseInt(weight) : null,
+        jerseyNumber: jerseyNumber ? parseInt(jerseyNumber) : null,
+        parentName,
+        parentEmail,
+        parentPhone,
+      },
+    });
+
     res.status(201).json(player);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Validation failed', details: error.errors });
-      return;
-    }
     next(error);
   }
 });
 
-// GET /api/players/:id - Get player details
-router.get('/:id', authenticate, coachOrParent, async (req: Request, res: Response, next: NextFunction) => {
+// PUT /api/players/:id - Update player
+router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    let coachId: string | undefined;
-    
-    if (req.user!.role === Role.COACH) {
-      coachId = await getCoachId(req.user!.userId);
+    const { id } = req.params;
+
+    const coach = await prisma.coach.findUnique({
+      where: { userId: req.user!.userId },
+    });
+
+    if (!coach) {
+      throw new AppError('Coach profile not found', 404);
     }
-    
-    const player = await playerService.findById(req.params.id, coachId);
-    
-    // If parent, verify they're the player's parent
-    if (req.user!.role === Role.PARENT) {
-      const parentId = await getParentId(req.user!.userId);
-      if (player.parentId !== parentId) {
-        res.status(403).json({ error: 'Not authorized' });
-        return;
-      }
+
+    const existingPlayer = await prisma.player.findFirst({
+      where: { id, coachId: coach.id },
+    });
+
+    if (!existingPlayer) {
+      throw new AppError('Player not found', 404);
     }
-    
+
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      dateOfBirth,
+      position,
+      preferredFoot,
+      height,
+      weight,
+      jerseyNumber,
+      parentName,
+      parentEmail,
+      parentPhone,
+      avatar,
+    } = req.body;
+
+    const player = await prisma.player.update({
+      where: { id },
+      data: {
+        firstName,
+        lastName,
+        email,
+        phone,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+        position,
+        preferredFoot,
+        height: height ? parseInt(height) : null,
+        weight: weight ? parseInt(weight) : null,
+        jerseyNumber: jerseyNumber ? parseInt(jerseyNumber) : null,
+        parentName,
+        parentEmail,
+        parentPhone,
+        avatar,
+      },
+    });
+
     res.json(player);
   } catch (error) {
     next(error);
   }
 });
 
-// GET /api/players/:id/stats - Get player statistics summary
-router.get('/:id/stats', authenticate, coachOrParent, async (req: Request, res: Response, next: NextFunction) => {
+// DELETE /api/players/:id - Soft delete player
+router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const stats = await playerService.getStatsSummary(req.params.id);
-    res.json(stats);
-  } catch (error) {
-    next(error);
-  }
-});
+    const { id } = req.params;
 
-// PUT /api/players/:id - Update player (coach only)
-router.put('/:id', authenticate, coachOnly, async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const updateSchema = createPlayerSchema.partial();
-    const data = updateSchema.parse(req.body);
-    const coachId = await getCoachId(req.user!.userId);
-    const player = await playerService.update(req.params.id, coachId, data);
-    res.json(player);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Validation failed', details: error.errors });
-      return;
+    const coach = await prisma.coach.findUnique({
+      where: { userId: req.user!.userId },
+    });
+
+    if (!coach) {
+      throw new AppError('Coach profile not found', 404);
     }
-    next(error);
-  }
-});
 
-// DELETE /api/players/:id - Delete player (coach only)
-router.delete('/:id', authenticate, coachOnly, async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const coachId = await getCoachId(req.user!.userId);
-    await playerService.delete(req.params.id, coachId);
-    res.status(204).send();
-  } catch (error) {
-    next(error);
-  }
-});
+    const player = await prisma.player.findFirst({
+      where: { id, coachId: coach.id },
+    });
 
-// POST /api/players/:id/assign-parent - Assign player to parent
-router.post('/:id/assign-parent', authenticate, coachOnly, async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { parentId } = z.object({ parentId: z.string() }).parse(req.body);
-    const coachId = await getCoachId(req.user!.userId);
-    const player = await playerService.assignToParent(req.params.id, parentId, coachId);
-    res.json(player);
+    if (!player) {
+      throw new AppError('Player not found', 404);
+    }
+
+    await prisma.player.update({
+      where: { id },
+      data: { isActive: false },
+    });
+
+    res.json({ message: 'Player deleted successfully' });
   } catch (error) {
     next(error);
   }

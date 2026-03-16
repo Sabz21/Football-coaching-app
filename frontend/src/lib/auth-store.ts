@@ -1,8 +1,16 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import Cookies from 'js-cookie';
-import { User, Role } from '@/types';
-import { authApi } from '@/lib/api';
+import { api } from './api';
+
+interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  avatar?: string;
+  role: 'ADMIN' | 'COACH' | 'PLAYER';
+  coachId?: string;
+}
 
 interface AuthState {
   user: User | null;
@@ -10,112 +18,83 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   
-  // Actions
   login: (email: string, password: string) => Promise<void>;
-  register: (data: {
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    role: Role;
-    phone?: string;
-  }) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
   logout: () => void;
-  fetchProfile: () => Promise<void>;
-  updateProfile: (data: Partial<User>) => Promise<void>;
-  setUser: (user: User | null) => void;
+  loadUser: () => Promise<void>;
+  updateUser: (data: Partial<User>) => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      user: null,
-      token: null,
-      isLoading: false,
-      isAuthenticated: false,
+interface RegisterData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+}
 
-      login: async (email: string, password: string) => {
-        set({ isLoading: true });
-        try {
-          const { user, token } = await authApi.login(email, password);
-          Cookies.set('token', token, { expires: 7 });
-          set({ user, token, isAuthenticated: true, isLoading: false });
-        } catch (error) {
-          set({ isLoading: false });
-          throw error;
-        }
-      },
+export const useAuthStore = create<AuthState>((set, get) => ({
+  user: null,
+  token: typeof window !== 'undefined' ? localStorage.getItem('token') : null,
+  isLoading: true,
+  isAuthenticated: false,
 
-      register: async (data) => {
-        set({ isLoading: true });
-        try {
-          const { user, token } = await authApi.register(data);
-          Cookies.set('token', token, { expires: 7 });
-          set({ user, token, isAuthenticated: true, isLoading: false });
-        } catch (error) {
-          set({ isLoading: false });
-          throw error;
-        }
-      },
+  login: async (email: string, password: string) => {
+    const response = await api.post('/auth/login', { email, password });
+    const { token, user } = response.data;
+    
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    
+    set({ user, token, isAuthenticated: true, isLoading: false });
+  },
 
-      logout: () => {
-        Cookies.remove('token');
-        set({ user: null, token: null, isAuthenticated: false });
-        if (typeof window !== 'undefined') {
-          window.location.href = '/auth/login';
-        }
-      },
+  register: async (data: RegisterData) => {
+    const response = await api.post('/auth/register', data);
+    const { token, user } = response.data;
+    
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    
+    set({ user, token, isAuthenticated: true, isLoading: false });
+  },
 
-      fetchProfile: async () => {
-        const token = Cookies.get('token');
-        if (!token) {
-          set({ user: null, isAuthenticated: false });
-          return;
-        }
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    set({ user: null, token: null, isAuthenticated: false });
+    window.location.href = '/auth/login';
+  },
 
-        set({ isLoading: true });
-        try {
-          const user = await authApi.getProfile();
-          set({ user, token, isAuthenticated: true, isLoading: false });
-        } catch (error) {
-          Cookies.remove('token');
-          set({ user: null, token: null, isAuthenticated: false, isLoading: false });
-          throw error;
-        }
-      },
-
-      updateProfile: async (data) => {
-        set({ isLoading: true });
-        try {
-          const user = await authApi.updateProfile(data);
-          set({ user, isLoading: false });
-        } catch (error) {
-          set({ isLoading: false });
-          throw error;
-        }
-      },
-
-      setUser: (user) => set({ user, isAuthenticated: !!user }),
-    }),
-    {
-      name: 'auth-storage',
-      partialize: (state) => ({ token: state.token }),
+  loadUser: async () => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      set({ isLoading: false, isAuthenticated: false });
+      return;
     }
-  )
-);
 
-// Helper hook to check role
-export const useIsCoach = () => {
-  const user = useAuthStore((state) => state.user);
-  return user?.role === 'COACH';
-};
+    try {
+      const response = await api.get('/auth/me');
+      set({ 
+        user: response.data, 
+        token, 
+        isAuthenticated: true, 
+        isLoading: false 
+      });
+    } catch (error) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      set({ user: null, token: null, isAuthenticated: false, isLoading: false });
+    }
+  },
 
-export const useIsParent = () => {
-  const user = useAuthStore((state) => state.user);
-  return user?.role === 'PARENT';
-};
-
-export const useIsPlayer = () => {
-  const user = useAuthStore((state) => state.user);
-  return user?.role === 'PLAYER';
-};
+  updateUser: (data: Partial<User>) => {
+    const currentUser = get().user;
+    if (currentUser) {
+      const updatedUser = { ...currentUser, ...data };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      set({ user: updatedUser });
+    }
+  },
+}));

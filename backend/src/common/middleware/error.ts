@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import { config } from '../../config';
 
 export class AppError extends Error {
   statusCode: number;
@@ -18,48 +17,29 @@ export const errorHandler = (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
+) => {
   console.error('Error:', err);
 
   if (err instanceof AppError) {
-    res.status(err.statusCode).json({
+    return res.status(err.statusCode).json({
       error: err.message,
-      ...(config.isDevelopment && { stack: err.stack }),
     });
-    return;
   }
 
-  // Handle Prisma errors
+  // Prisma errors
   if (err.name === 'PrismaClientKnownRequestError') {
-    res.status(400).json({
+    return res.status(400).json({
       error: 'Database operation failed',
-      ...(config.isDevelopment && { details: err.message }),
     });
-    return;
   }
 
-  // Handle validation errors
-  if (err.name === 'ValidationError') {
-    res.status(400).json({
-      error: 'Validation failed',
-      details: err.message,
-    });
-    return;
-  }
-
-  // Default error response
-  res.status(500).json({
-    error: config.isProduction ? 'Internal server error' : err.message,
-    ...(config.isDevelopment && { stack: err.stack }),
+  return res.status(500).json({
+    error: 'Internal server error',
   });
 };
 
-export const notFoundHandler = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
+export const notFoundHandler = (req: Request, res: Response) => {
   res.status(404).json({
-    error: `Route ${req.method} ${req.url} not found`,
+    error: `Route ${req.method} ${req.path} not found`,
   });
 };
