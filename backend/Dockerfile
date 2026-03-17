@@ -27,4 +27,4 @@ RUN npm run build
 EXPOSE 3001
 
 # Reset database and start server
-CMD npx prisma db push --force-reset --accept-data-loss && npm start
+CMD npx prisma db push --accept-data-loss && npm start
