@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  COACH
+  PLAYER
+}
+
+enum NoteType {
+  GENERAL
+  SESSION_REPORT
+  PERFORMANCE
+  INJURY
+  GOAL
+  IMPORTANT
+}
+
+enum SessionType {
+  INDIVIDUAL
+  GROUP
+  ASSESSMENT
+  TRIAL
+}
+
+enum SessionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum MatchStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  POSTPONED
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  phone     String?
+  avatar    String?
+  role      Role     @default(COACH)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  coach            Coach?
+  resetToken       String?
+  resetTokenExpiry DateTime?
+}
+
+model Coach {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  players  Player[]
+  sessions Session[]
+  teams    Team[]
+  matches  Match[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Player {
+  id            String    @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String?
+  phone         String?
+  dateOfBirth   DateTime?
+  position      String?
+  preferredFoot String?
+  height        Int?
+  weight        Int?
+  jerseyNumber  Int?
+  avatar        String?
+  parentName    String?
+  parentEmail   String?
+  parentPhone   String?
+
+  coachId String
+  coach   Coach  @relation(fields: [coachId], references: [id], onDelete: Cascade)
+
+  notes           PlayerNote[]
+  sessions        SessionPlayer[]
+  teamMemberships TeamPlayer[]
+  matchStats      MatchPlayerStats[]
+  manOfTheMatch   Match[]            @relation("ManOfTheMatch")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlayerNote {
+  id      String   @id @default(cuid())
+  content String
+  type    NoteType @default(GENERAL)
+
+  playerId String
+  player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  sessionId String?
+  session   Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AvailabilitySlot {
+  id        String   @id @default(cuid())
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  isActive  Boolean  @default(true)
+
+  coachId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Session {
+  id         String        @id @default(cuid())
+  title      String?
+  date       DateTime
+  startTime  String
+  endTime    String
+  location   String
+  type       SessionType   @default(INDIVIDUAL)
+  status     SessionStatus @default(SCHEDULED)
+  objectives String?
+  notes      String?
+  report     String?
+  rating     Int?
+
+  coachId String
+  coach   Coach  @relation(fields: [coachId], references: [id], onDelete: Cascade)
+
+  players     SessionPlayer[]
+  playerNotes PlayerNote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SessionPlayer {
+  id       String  @id @default(cuid())
+  attended Boolean @default(true)
+  rating   Int?
+  feedback String?
+
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  playerId String
+  player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sessionId, playerId])
+}
+
+model Team {
+  id        String  @id @default(cuid())
+  name      String
+  categor
