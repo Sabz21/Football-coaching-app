@@ -1,32 +1,28 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import prisma from '../../database/prisma';
 import { authenticate, requireCoach } from '../../common/middleware/auth';
-import { AppError } from '../../common/middleware/error';
 
 const router = Router();
 
-router.use(authenticate);
-router.use(requireCoach);
+// Helper to get coach from user
+async function getCoach(userId: string) {
+  return prisma.coach.findUnique({ where: { userId } });
+}
 
-// GET /api/players - Get all players for coach
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+// Get all players for coach
+router.get('/', authenticate, requireCoach, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const coach = await prisma.coach.findUnique({
-      where: { userId: req.user!.userId },
-    });
-
-    if (!coach) {
-      throw new AppError('Coach profile not found', 404);
-    }
+    const coach = await getCoach(req.user!.userId);
+    if (!coach) return res.status(404).json({ error: 'Coach not found' });
 
     const players = await prisma.player.findMany({
-      where: { coachId: coach.id, isActive: true },
+      where: { coachId: coach.id },
       include: {
         _count: {
           select: {
-            notes: true,
             sessions: true,
-            teamMemberships: true,
+            notes: true,
+            manOfTheMatch: true,
           },
         },
       },
@@ -39,28 +35,21 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-// GET /api/players/:id - Get single player
-router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+// Get single player
+router.get('/:id', authenticate, requireCoach, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-
-    const coach = await prisma.coach.findUnique({
-      where: { userId: req.user!.userId },
-    });
-
-    if (!coach) {
-      throw new AppError('Coach profile not found', 404);
-    }
+    const coach = await getCoach(req.user!.userId);
+    if (!coach) return res.status(404).json({ error: 'Coach not found' });
 
     const player = await prisma.player.findFirst({
       where: { id, coachId: coach.id },
       include: {
         notes: {
           orderBy: { createdAt: 'desc' },
-          take: 20,
           include: {
             session: {
-              select: { id: true, date: true, title: true },
+              select: { id: true, title: true, date: true },
             },
           },
         },
@@ -68,28 +57,25 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
           include: {
             session: true,
           },
-          orderBy: { session: { date: 'desc' } },
+          orderBy: { createdAt: 'desc' },
           take: 10,
         },
         teamMemberships: {
-          where: { isActive: true },
           include: {
             team: true,
           },
         },
         matchStats: {
-          orderBy: { match: { date: 'desc' } },
-          take: 10,
           include: {
-            match: {
-              select: { id: true, date: true, opponent: true, goalsFor: true, goalsAgainst: true },
-            },
+            match: true,
           },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
         },
         _count: {
           select: {
-            notes: true,
             sessions: true,
+            notes: true,
             manOfTheMatch: true,
           },
         },
@@ -97,7 +83,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     });
 
     if (!player) {
-      throw new AppError('Player not found', 404);
+      return res.status(404).json({ error: 'Player not found' });
     }
 
     res.json(player);
@@ -106,16 +92,11 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-// POST /api/players - Create player
-router.post('/', async (req: Request, res: Response, next: NextFunction) => {
+// Create player
+router.post('/', authenticate, requireCoach, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const coach = await prisma.coach.findUnique({
-      where: { userId: req.user!.userId },
-    });
-
-    if (!coach) {
-      throw new AppError('Coach profile not found', 404);
-    }
+    const coach = await getCoach(req.user!.userId);
+    if (!coach) return res.status(404).json({ error: 'Coach not found' });
 
     const {
       firstName,
@@ -133,13 +114,8 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       parentPhone,
     } = req.body;
 
-    if (!firstName || !lastName) {
-      throw new AppError('First name and last name are required', 400);
-    }
-
     const player = await prisma.player.create({
       data: {
-        coachId: coach.id,
         firstName,
         lastName,
         email,
@@ -153,6 +129,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
         parentName,
         parentEmail,
         parentPhone,
+        coachId: coach.id,
       },
     });
 
@@ -162,26 +139,12 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-// PUT /api/players/:id - Update player
-router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
+// Update player
+router.put('/:id', authenticate, requireCoach, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-
-    const coach = await prisma.coach.findUnique({
-      where: { userId: req.user!.userId },
-    });
-
-    if (!coach) {
-      throw new AppError('Coach profile not found', 404);
-    }
-
-    const existingPlayer = await prisma.player.findFirst({
-      where: { id, coachId: coach.id },
-    });
-
-    if (!existingPlayer) {
-      throw new AppError('Player not found', 404);
-    }
+    const coach = await getCoach(req.user!.userId);
+    if (!coach) return res.status(404).json({ error: 'Coach not found' });
 
     const {
       firstName,
@@ -197,8 +160,15 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
       parentName,
       parentEmail,
       parentPhone,
-      avatar,
     } = req.body;
+
+    const existingPlayer = await prisma.player.findFirst({
+      where: { id, coachId: coach.id },
+    });
+
+    if (!existingPlayer) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
 
     const player = await prisma.player.update({
       where: { id },
@@ -216,7 +186,6 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
         parentName,
         parentEmail,
         parentPhone,
-        avatar,
       },
     });
 
@@ -226,31 +195,22 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-// DELETE /api/players/:id - Soft delete player
-router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
+// Delete player
+router.delete('/:id', authenticate, requireCoach, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
+    const coach = await getCoach(req.user!.userId);
+    if (!coach) return res.status(404).json({ error: 'Coach not found' });
 
-    const coach = await prisma.coach.findUnique({
-      where: { userId: req.user!.userId },
-    });
-
-    if (!coach) {
-      throw new AppError('Coach profile not found', 404);
-    }
-
-    const player = await prisma.player.findFirst({
+    const existingPlayer = await prisma.player.findFirst({
       where: { id, coachId: coach.id },
     });
 
-    if (!player) {
-      throw new AppError('Player not found', 404);
+    if (!existingPlayer) {
+      return res.status(404).json({ error: 'Player not found' });
     }
 
-    await prisma.player.update({
-      where: { id },
-      data: { isActive: false },
-    });
+    await prisma.player.delete({ where: { id } });
 
     res.json({ message: 'Player deleted successfully' });
   } catch (error) {

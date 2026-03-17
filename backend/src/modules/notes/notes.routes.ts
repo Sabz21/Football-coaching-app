@@ -1,26 +1,21 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import prisma from '../../database/prisma';
 import { authenticate, requireCoach } from '../../common/middleware/auth';
-import { AppError } from '../../common/middleware/error';
 
 const router = Router();
 
-router.use(authenticate);
-router.use(requireCoach);
+// Helper to get coach from user
+async function getCoach(userId: string) {
+  return prisma.coach.findUnique({ where: { userId } });
+}
 
-// GET /api/notes/player/:playerId - Get all notes for a player
-router.get('/player/:playerId', async (req: Request, res: Response, next: NextFunction) => {
+// Get notes for a player
+router.get('/player/:playerId', authenticate, requireCoach, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { playerId } = req.params;
-    const { type, limit = '50' } = req.query;
-
-    const coach = await prisma.coach.findUnique({
-      where: { userId: req.user!.userId },
-    });
-
-    if (!coach) {
-      throw new AppError('Coach profile not found', 404);
-    }
+    const { type } = req.query;
+    const coach = await getCoach(req.user!.userId);
+    if (!coach) return res.status(404).json({ error: 'Coach not found' });
 
     // Verify player belongs to coach
     const player = await prisma.player.findFirst({
@@ -28,26 +23,22 @@ router.get('/player/:playerId', async (req: Request, res: Response, next: NextFu
     });
 
     if (!player) {
-      throw new AppError('Player not found', 404);
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
+    const where: any = { playerId };
+    if (type) {
+      where.type = type;
     }
 
     const notes = await prisma.playerNote.findMany({
-      where: {
-        playerId,
-        ...(type && { type: type as any }),
-      },
+      where,
       include: {
         session: {
-          select: {
-            id: true,
-            date: true,
-            title: true,
-            type: true,
-          },
+          select: { id: true, title: true, date: true },
         },
       },
       orderBy: { createdAt: 'desc' },
-      take: parseInt(limit as string),
     });
 
     res.json(notes);
@@ -56,22 +47,12 @@ router.get('/player/:playerId', async (req: Request, res: Response, next: NextFu
   }
 });
 
-// POST /api/notes - Create a note
-router.post('/', async (req: Request, res: Response, next: NextFunction) => {
+// Create note
+router.post('/', authenticate, requireCoach, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { playerId, content, type = 'GENERAL', sessionId } = req.body;
-
-    if (!playerId || !content) {
-      throw new AppError('Player ID and content are required', 400);
-    }
-
-    const coach = await prisma.coach.findUnique({
-      where: { userId: req.user!.userId },
-    });
-
-    if (!coach) {
-      throw new AppError('Coach profile not found', 404);
-    }
+    const { playerId, content, type, sessionId } = req.body;
+    const coach = await getCoach(req.user!.userId);
+    if (!coach) return res.status(404).json({ error: 'Coach not found' });
 
     // Verify player belongs to coach
     const player = await prisma.player.findFirst({
@@ -79,34 +60,19 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     });
 
     if (!player) {
-      throw new AppError('Player not found', 404);
-    }
-
-    // If sessionId provided, verify session belongs to coach
-    if (sessionId) {
-      const session = await prisma.session.findFirst({
-        where: { id: sessionId, coachId: coach.id },
-      });
-      if (!session) {
-        throw new AppError('Session not found', 404);
-      }
+      return res.status(404).json({ error: 'Player not found' });
     }
 
     const note = await prisma.playerNote.create({
       data: {
         playerId,
         content,
-        type,
-        sessionId,
+        type: type || 'GENERAL',
+        sessionId: sessionId || null,
       },
       include: {
         session: {
-          select: {
-            id: true,
-            date: true,
-            title: true,
-            type: true,
-          },
+          select: { id: true, title: true, date: true },
         },
       },
     });
@@ -117,72 +83,50 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-// PUT /api/notes/:id - Update a note
-router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
+// Update note
+router.put('/:id', authenticate, requireCoach, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { content, type } = req.body;
+    const coach = await getCoach(req.user!.userId);
+    if (!coach) return res.status(404).json({ error: 'Coach not found' });
 
-    const coach = await prisma.coach.findUnique({
-      where: { userId: req.user!.userId },
-    });
-
-    if (!coach) {
-      throw new AppError('Coach profile not found', 404);
-    }
-
-    // Verify note belongs to a player of this coach
-    const note = await prisma.playerNote.findUnique({
+    // Verify note belongs to coach's player
+    const existingNote = await prisma.playerNote.findFirst({
       where: { id },
       include: { player: true },
     });
 
-    if (!note || note.player.coachId !== coach.id) {
-      throw new AppError('Note not found', 404);
+    if (!existingNote || existingNote.player.coachId !== coach.id) {
+      return res.status(404).json({ error: 'Note not found' });
     }
 
-    const updatedNote = await prisma.playerNote.update({
+    const note = await prisma.playerNote.update({
       where: { id },
       data: { content, type },
-      include: {
-        session: {
-          select: {
-            id: true,
-            date: true,
-            title: true,
-            type: true,
-          },
-        },
-      },
     });
 
-    res.json(updatedNote);
+    res.json(note);
   } catch (error) {
     next(error);
   }
 });
 
-// DELETE /api/notes/:id - Delete a note
-router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
+// Delete note
+router.delete('/:id', authenticate, requireCoach, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
+    const coach = await getCoach(req.user!.userId);
+    if (!coach) return res.status(404).json({ error: 'Coach not found' });
 
-    const coach = await prisma.coach.findUnique({
-      where: { userId: req.user!.userId },
-    });
-
-    if (!coach) {
-      throw new AppError('Coach profile not found', 404);
-    }
-
-    // Verify note belongs to a player of this coach
-    const note = await prisma.playerNote.findUnique({
+    // Verify note belongs to coach's player
+    const existingNote = await prisma.playerNote.findFirst({
       where: { id },
       include: { player: true },
     });
 
-    if (!note || note.player.coachId !== coach.id) {
-      throw new AppError('Note not found', 404);
+    if (!existingNote || existingNote.player.coachId !== coach.id) {
+      return res.status(404).json({ error: 'Note not found' });
     }
 
     await prisma.playerNote.delete({ where: { id } });
