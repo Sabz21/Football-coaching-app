@@ -26,5 +26,5 @@ RUN npm run build
 # Expose port
 EXPOSE 3001
 
-# Start the server
-CMD ["npm", "start"]
+# Push database schema and start server
+CMD npx prisma db push && npm start
