@@ -3,34 +3,23 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, UsersRound, Trophy, Calendar } from 'lucide-react';
+import { ArrowLeft, Save, UsersRound } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
-const FORMATIONS = [
-  '4-4-2',
-  '4-3-3',
-  '4-2-3-1',
-  '3-5-2',
-  '3-4-3',
-  '5-3-2',
-  '4-1-4-1',
-  '4-5-1',
-];
-
-const CATEGORIES = [
-  'U8', 'U10', 'U12', 'U14', 'U16', 'U18', 'U21', 'Senior', 'Veterans',
-];
+const FORMATIONS = ['4-4-2', '4-3-3', '3-5-2', '4-2-3-1', '5-3-2', '4-1-4-1', '3-4-3'];
 
 export default function NewTeamPage() {
   const router = useRouter();
+  const { locale } = useI18n();
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     category: '',
-    season: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
+    season: '',
     formation: '4-3-3',
   });
 
@@ -40,7 +29,10 @@ export default function NewTeamPage() {
       return res.data;
     },
     onSuccess: (data) => {
-      router.push(`/teams/${data.id}`);
+      // Save the new team as selected and switch to team mode
+      localStorage.setItem('vertex-mode', 'team');
+      localStorage.setItem('vertex-team', JSON.stringify({ id: data.id, name: data.name }));
+      router.push(`/team/${data.id}/calendar`);
     },
     onError: (err: any) => {
       setError(err.response?.data?.error || 'Failed to create team');
@@ -51,8 +43,8 @@ export default function NewTeamPage() {
     e.preventDefault();
     setError('');
 
-    if (!formData.name) {
-      setError('Team name is required');
+    if (!formData.name.trim()) {
+      setError(locale === 'fr' ? 'Le nom est obligatoire' : 'Team name is required');
       return;
     }
 
@@ -71,8 +63,12 @@ export default function NewTeamPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Create Team</h1>
-          <p className="text-muted-foreground">Set up a new team to manage</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {locale === 'fr' ? 'Nouvelle équipe' : 'New Team'}
+          </h1>
+          <p className="text-muted-foreground">
+            {locale === 'fr' ? 'Créer une nouvelle équipe' : 'Create a new team'}
+          </p>
         </div>
       </div>
 
@@ -87,15 +83,19 @@ export default function NewTeamPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UsersRound className="w-5 h-5" />
-              Team Information
+              {locale === 'fr' ? 'Informations de l\'équipe' : 'Team Information'}
             </CardTitle>
-            <CardDescription>Basic team details</CardDescription>
+            <CardDescription>
+              {locale === 'fr' ? 'Détails de votre équipe' : 'Your team details'}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Team Name *</label>
+              <label className="text-sm font-medium">
+                {locale === 'fr' ? 'Nom de l\'équipe' : 'Team Name'} *
+              </label>
               <Input
-                placeholder="e.g., FC Barcelona U16, Academy Elite..."
+                placeholder={locale === 'fr' ? 'Ex: U15 Excellence' : 'Ex: U15 Premier'}
                 value={formData.name}
                 onChange={(e) => updateField('name', e.target.value)}
                 required
@@ -104,24 +104,21 @@ export default function NewTeamPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Category</label>
-                <select
-                  className="w-full h-10 rounded-xl border border-input bg-background px-3 py-2 text-sm"
+                <label className="text-sm font-medium">
+                  {locale === 'fr' ? 'Catégorie' : 'Category'}
+                </label>
+                <Input
+                  placeholder={locale === 'fr' ? 'Ex: U15, Seniors...' : 'Ex: U15, Senior...'}
                   value={formData.category}
                   onChange={(e) => updateField('category', e.target.value)}
-                >
-                  <option value="">Select category</option>
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Season</label>
+                <label className="text-sm font-medium">
+                  {locale === 'fr' ? 'Saison' : 'Season'}
+                </label>
                 <Input
-                  placeholder="2024-2025"
+                  placeholder="2025-2026"
                   value={formData.season}
                   onChange={(e) => updateField('season', e.target.value)}
                 />
@@ -129,14 +126,16 @@ export default function NewTeamPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Default Formation</label>
+              <label className="text-sm font-medium">
+                {locale === 'fr' ? 'Formation par défaut' : 'Default Formation'}
+              </label>
               <div className="grid grid-cols-4 gap-2">
                 {FORMATIONS.map((formation) => (
                   <button
                     key={formation}
                     type="button"
                     onClick={() => updateField('formation', formation)}
-                    className={`p-3 rounded-xl border text-center font-medium transition-colors ${
+                    className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
                       formData.formation === formation
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-border hover:border-primary/50'
@@ -153,11 +152,13 @@ export default function NewTeamPage() {
         {/* Actions */}
         <div className="flex justify-end gap-4">
           <Button type="button" variant="outline" onClick={() => router.back()}>
-            Cancel
+            {locale === 'fr' ? 'Annuler' : 'Cancel'}
           </Button>
           <Button type="submit" disabled={createMutation.isPending}>
             <Save className="w-4 h-4 mr-2" />
-            {createMutation.isPending ? 'Creating...' : 'Create Team'}
+            {createMutation.isPending 
+              ? (locale === 'fr' ? 'Création...' : 'Creating...') 
+              : (locale === 'fr' ? 'Créer l\'équipe' : 'Create Team')}
           </Button>
         </div>
       </form>
