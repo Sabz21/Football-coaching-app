@@ -8,18 +8,8 @@ datasource db {
 }
 
 enum Role {
-  ADMIN
   COACH
-  PLAYER
-}
-
-enum NoteType {
-  GENERAL
-  SESSION_REPORT
-  PERFORMANCE
-  INJURY
-  GOAL
-  IMPORTANT
+  ADMIN
 }
 
 enum SessionType {
@@ -31,50 +21,58 @@ enum SessionType {
 
 enum SessionStatus {
   SCHEDULED
-  IN_PROGRESS
   COMPLETED
   CANCELLED
-  NO_SHOW
 }
 
 enum MatchStatus {
   SCHEDULED
-  IN_PROGRESS
   COMPLETED
-  POSTPONED
   CANCELLED
 }
 
+enum NoteType {
+  GENERAL
+  SESSION_REPORT
+  PERFORMANCE
+  INJURY
+  GOAL
+  IMPORTANT
+}
+
 model User {
-  id               String    @id @default(cuid())
-  email            String    @unique
-  password         String
-  firstName        String
-  lastName         String
-  phone            String?
-  avatar           String?
-  role             Role      @default(COACH)
-  resetToken       String?
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String
+  firstName       String
+  lastName        String
+  phone           String?
+  avatar          String?
+  role            Role      @default(COACH)
+  resetToken      String?
   resetTokenExpiry DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  coach            Coach?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  coach           Coach?
 }
 
 model Coach {
-  id        String    @id @default(cuid())
-  userId    String    @unique
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  players   Player[]
-  sessions  Session[]
-  teams     Team[]
-  matches   Match[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  players         Player[]
+  sessions        Session[]
+  teams           Team[]
+  matches         Match[]
+  availabilitySlots AvailabilitySlot[]
 }
 
 model Player {
-  id              String             @id @default(cuid())
+  id              String    @id @default(cuid())
   firstName       String
   lastName        String
   email           String?
@@ -90,141 +88,150 @@ model Player {
   parentEmail     String?
   parentPhone     String?
   coachId         String
-  coach           Coach              @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  coach           Coach     @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
   notes           PlayerNote[]
   sessions        SessionPlayer[]
   teamMemberships TeamPlayer[]
   matchStats      MatchPlayerStats[]
-  manOfTheMatch   Match[]            @relation("ManOfTheMatch")
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  manOfTheMatch   Match[]   @relation("ManOfTheMatch")
 }
 
 model PlayerNote {
-  id        String   @id @default(cuid())
-  content   String
-  type      NoteType @default(GENERAL)
-  playerId  String
-  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  sessionId String?
-  session   Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String    @id @default(cuid())
+  content         String
+  type            NoteType  @default(GENERAL)
+  playerId        String
+  player          Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  sessionId       String?
+  session         Session?  @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model AvailabilitySlot {
-  id        String   @id @default(cuid())
-  dayOfWeek Int
-  startTime String
-  endTime   String
-  isActive  Boolean  @default(true)
-  coachId   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String    @id @default(cuid())
+  dayOfWeek       Int
+  startTime       String
+  endTime         String
+  coachId         String
+  coach           Coach     @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model Session {
-  id          String        @id @default(cuid())
-  title       String?
-  date        DateTime
-  startTime   String
-  endTime     String
-  location    String
-  type        SessionType   @default(INDIVIDUAL)
-  status      SessionStatus @default(SCHEDULED)
-  objectives  String?
-  notes       String?
-  report      String?
-  rating      Int?
-  coachId     String
-  coach       Coach         @relation(fields: [coachId], references: [id], onDelete: Cascade)
-  players     SessionPlayer[]
-  playerNotes PlayerNote[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id              String        @id @default(cuid())
+  title           String?
+  date            DateTime
+  startTime       String?
+  endTime         String?
+  location        String?
+  type            SessionType   @default(INDIVIDUAL)
+  status          SessionStatus @default(SCHEDULED)
+  objectives      String?
+  notes           String?
+  report          String?
+  rating          Int?
+  coachId         String
+  coach           Coach         @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  players         SessionPlayer[]
+  playerNotes     PlayerNote[]
 }
 
 model SessionPlayer {
-  id        String   @id @default(cuid())
-  attended  Boolean  @default(true)
-  rating    Int?
-  feedback  String?
-  sessionId String
-  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  playerId  String
-  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String    @id @default(cuid())
+  sessionId       String
+  session         Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  playerId        String
+  player          Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  attended        Boolean   @default(true)
+  rating          Int?
+  feedback        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
   @@unique([sessionId, playerId])
 }
 
 model Team {
-  id        String       @id @default(cuid())
-  name      String
-  category  String?
-  season    String?
-  formation String?
-  coachId   String
-  coach     Coach        @relation(fields: [coachId], references: [id], onDelete: Cascade)
-  players   TeamPlayer[]
-  matches   Match[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id              String    @id @default(cuid())
+  name            String
+  category        String?
+  season          String?
+  formation       String?
+  coachId         String
+  coach           Coach     @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  players         TeamPlayer[]
+  matches         Match[]
 }
 
 model TeamPlayer {
-  id           String   @id @default(cuid())
-  position     String?
-  jerseyNumber Int?
-  isCaptain    Boolean  @default(false)
-  teamId       String
-  team         Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  playerId     String
-  player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String    @id @default(cuid())
+  teamId          String
+  team            Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  playerId        String
+  player          Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  position        String?
+  jerseyNumber    Int?
+  joinedAt        DateTime  @default(now())
+  leftAt          DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
   @@unique([teamId, playerId])
 }
 
 model Match {
-  id              String             @id @default(cuid())
-  opponent        String
+  id              String      @id @default(cuid())
   date            DateTime
   time            String?
   location        String?
-  isHome          Boolean            @default(true)
+  opponent        String
+  isHome          Boolean     @default(true)
   competition     String?
-  status          MatchStatus        @default(SCHEDULED)
+  competitionRound String?
+  formation       String?
+  status          MatchStatus @default(SCHEDULED)
   goalsFor        Int?
   goalsAgainst    Int?
-  formation       String?
   preMatchNotes   String?
   postMatchNotes  String?
-  coachId         String
-  coach           Coach              @relation(fields: [coachId], references: [id], onDelete: Cascade)
   teamId          String
-  team            Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team            Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  coachId         String
+  coach           Coach       @relation(fields: [coachId], references: [id], onDelete: Cascade)
   manOfTheMatchId String?
-  manOfTheMatch   Player?            @relation("ManOfTheMatch", fields: [manOfTheMatchId], references: [id], onDelete: SetNull)
+  manOfTheMatch   Player?     @relation("ManOfTheMatch", fields: [manOfTheMatchId], references: [id], onDelete: SetNull)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
   playerStats     MatchPlayerStats[]
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
 }
 
 model MatchPlayerStats {
-  id            String   @id @default(cuid())
-  minutesPlayed Int      @default(0)
-  isStarter     Boolean  @default(false)
-  goals         Int      @default(0)
-  assists       Int      @default(0)
-  yellowCards   Int      @default(0)
-  redCards      Int      @default(0)
-  rating        Decimal?
-  matchId       String
-  match         Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  playerId      String
-  player        Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String    @id @default(cuid())
+  matchId         String
+  match           Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  playerId        String
+  player          Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  minutesPlayed   Int?
+  isStarter       Boolean   @default(false)
+  goals           Int       @default(0)
+  assists         Int       @default(0)
+  yellowCards     Int       @default(0)
+  redCards        Int       @default(0)
+  rating          Decimal?  @db.Decimal(3, 1)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
   @@unique([matchId, playerId])
 }

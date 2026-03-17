@@ -34,6 +34,9 @@ router.get('/', authenticate, requireCoach, async (req: Request, res: Response, 
       include: {
         team: true,
         manOfTheMatch: true,
+        playerStats: {
+          include: { player: true },
+        },
       },
       orderBy: { date: 'desc' },
     });
@@ -92,6 +95,7 @@ router.post('/', authenticate, requireCoach, async (req: Request, res: Response,
       location,
       isHome,
       competition,
+      competitionRound,
       preMatchNotes,
     } = req.body;
 
@@ -112,6 +116,7 @@ router.post('/', authenticate, requireCoach, async (req: Request, res: Response,
         location,
         isHome: isHome ?? true,
         competition,
+        competitionRound,
         preMatchNotes,
         coachId: coach.id,
         teamId,
@@ -141,6 +146,7 @@ router.put('/:id', authenticate, requireCoach, async (req: Request, res: Respons
       location,
       isHome,
       competition,
+      competitionRound,
       preMatchNotes,
     } = req.body;
 
@@ -161,6 +167,7 @@ router.put('/:id', authenticate, requireCoach, async (req: Request, res: Respons
         location,
         isHome,
         competition,
+        competitionRound,
         preMatchNotes,
       },
       include: {
@@ -198,7 +205,7 @@ router.put('/:id/result', authenticate, requireCoach, async (req: Request, res: 
     }
 
     // Update match
-    const match = await prisma.match.update({
+    await prisma.match.update({
       where: { id },
       data: {
         goalsFor,

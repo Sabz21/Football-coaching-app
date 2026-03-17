@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  LayoutDashboard,
   Users,
   Calendar,
   UsersRound,
@@ -21,6 +20,7 @@ import {
   Check,
   Dumbbell,
   CalendarDays,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/lib/auth-store';
@@ -80,7 +80,6 @@ export function Sidebar() {
     } else if (newMode === 'team' && selectedTeam) {
       router.push(`/team/${selectedTeam.id}/calendar`);
     } else if (newMode === 'team' && teams?.length > 0) {
-      // Auto-select first team if none selected
       selectTeam(teams[0]);
     }
   };
@@ -120,6 +119,11 @@ export function Sidebar() {
           label: locale === 'fr' ? 'Matchs' : 'Matches', 
           icon: Trophy 
         },
+        { 
+          href: `/team/${selectedTeam.id}/stats`, 
+          label: locale === 'fr' ? 'Statistiques' : 'Statistics', 
+          icon: BarChart3 
+        },
       ];
     }
     return [];
@@ -129,8 +133,8 @@ export function Sidebar() {
 
   // Common items (always visible)
   const commonItems = [
-    { href: '/players', label: t('nav.players'), icon: Users },
-    { href: '/settings', label: t('nav.settings'), icon: Settings },
+    { href: '/players', label: locale === 'fr' ? 'Joueurs' : 'Players', icon: Users },
+    { href: '/settings', label: locale === 'fr' ? 'Paramètres' : 'Settings', icon: Settings },
   ];
 
   return (
