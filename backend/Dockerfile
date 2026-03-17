@@ -26,5 +26,5 @@ RUN npm run build
 # Expose port
 EXPOSE 3001
 
-# Push database schema and start server
-CMD npx prisma db push --accept-data-loss && npm start
+# Reset database and start server
+CMD npx prisma db push --force-reset --accept-data-loss && npm start
