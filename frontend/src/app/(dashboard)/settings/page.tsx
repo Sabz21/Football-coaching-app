@@ -12,8 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuthStore();
-  const { locale, setLocale, t } = useI18n();
-  
+  const { locale, setLocale } = useI18n();
   const [profile, setProfile] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -35,11 +34,11 @@ export default function SettingsPage() {
     },
     onSuccess: (data) => {
       updateUser(data);
-      setProfileMessage('Profile updated successfully');
+      setProfileMessage(locale === 'fr' ? 'Profil mis à jour avec succès' : 'Profile updated successfully');
       setTimeout(() => setProfileMessage(''), 3000);
     },
     onError: (err: any) => {
-      setProfileMessage(err.response?.data?.error || 'Failed to update profile');
+      setProfileMessage(err.response?.data?.error || (locale === 'fr' ? 'Échec de la mise à jour' : 'Failed to update profile'));
     },
   });
 
@@ -50,11 +49,11 @@ export default function SettingsPage() {
     },
     onSuccess: () => {
       setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setPasswordMessage('Password updated successfully');
+      setPasswordMessage(locale === 'fr' ? 'Mot de passe mis à jour avec succès' : 'Password updated successfully');
       setTimeout(() => setPasswordMessage(''), 3000);
     },
     onError: (err: any) => {
-      setPasswordMessage(err.response?.data?.error || 'Failed to update password');
+      setPasswordMessage(err.response?.data?.error || (locale === 'fr' ? 'Échec de la mise à jour du mot de passe' : 'Failed to update password'));
     },
   });
 
@@ -66,11 +65,11 @@ export default function SettingsPage() {
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (passwords.newPassword !== passwords.confirmPassword) {
-      setPasswordMessage('Passwords do not match');
+      setPasswordMessage(locale === 'fr' ? 'Les mots de passe ne correspondent pas' : 'Passwords do not match');
       return;
     }
     if (passwords.newPassword.length < 6) {
-      setPasswordMessage('Password must be at least 6 characters');
+      setPasswordMessage(locale === 'fr' ? 'Le mot de passe doit contenir au moins 6 caractères' : 'Password must be at least 6 characters');
       return;
     }
     updatePasswordMutation.mutate({
@@ -82,69 +81,32 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 animate-in max-w-2xl">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('settings.title')}</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {locale === 'fr' ? 'Paramètres' : 'Settings'}
+        </h1>
         <p className="text-muted-foreground mt-1">
-          {t('settings.subtitle')}
+          {locale === 'fr' ? 'Gérez les paramètres de votre compte' : 'Manage your account settings'}
         </p>
       </div>
-
-      {/* Language Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="w-5 h-5" />
-            {t('settings.language')}
-          </CardTitle>
-          <CardDescription>{t('settings.languageDesc')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setLocale('en')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${
-                locale === 'en'
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border hover:border-primary/50'
-              }`}
-            >
-              <span className="text-2xl">🇬🇧</span>
-              <div className="text-left">
-                <p className="font-medium">English</p>
-                <p className="text-xs text-muted-foreground">English</p>
-              </div>
-            </button>
-            <button
-              onClick={() => setLocale('fr')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${
-                locale === 'fr'
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border hover:border-primary/50'
-              }`}
-            >
-              <span className="text-2xl">🇫🇷</span>
-              <div className="text-left">
-                <p className="font-medium">Français</p>
-                <p className="text-xs text-muted-foreground">French</p>
-              </div>
-            </button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Profile Settings */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="w-5 h-5" />
-            {t('settings.profile')}
+            {locale === 'fr' ? 'Profil' : 'Profile'}
           </CardTitle>
-          <CardDescription>{t('settings.profileDesc')}</CardDescription>
+          <CardDescription>
+            {locale === 'fr' ? 'Mettez à jour vos informations personnelles' : 'Update your personal information'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleProfileSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">{t('auth.firstName')}</label>
+                <label className="text-sm font-medium">
+                  {locale === 'fr' ? 'Prénom' : 'First Name'}
+                </label>
                 <Input
                   value={profile.firstName}
                   onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
@@ -152,7 +114,9 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">{t('auth.lastName')}</label>
+                <label className="text-sm font-medium">
+                  {locale === 'fr' ? 'Nom' : 'Last Name'}
+                </label>
                 <Input
                   value={profile.lastName}
                   onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
@@ -162,29 +126,35 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('auth.email')}</label>
+              <label className="text-sm font-medium">Email</label>
               <Input value={user?.email} disabled className="bg-muted" />
-              <p className="text-xs text-muted-foreground">{t('settings.emailCannotChange')}</p>
+              <p className="text-xs text-muted-foreground">
+                {locale === 'fr' ? "L'email ne peut pas être modifié" : 'Email cannot be changed'}
+              </p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('auth.phone')}</label>
+              <label className="text-sm font-medium">
+                {locale === 'fr' ? 'Téléphone' : 'Phone'}
+              </label>
               <Input
                 value={profile.phone}
                 onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                placeholder="+1 234 567 890"
+                placeholder="+33 6 12 34 56 78"
               />
             </div>
 
             {profileMessage && (
-              <p className={`text-sm ${profileMessage.includes('success') ? 'text-green-500' : 'text-red-500'}`}>
+              <p className={`text-sm ${profileMessage.includes('succès') || profileMessage.includes('success') ? 'text-green-500' : 'text-red-500'}`}>
                 {profileMessage}
               </p>
             )}
 
             <Button type="submit" disabled={updateProfileMutation.isPending}>
               <Save className="w-4 h-4 mr-2" />
-              {updateProfileMutation.isPending ? t('common.loading') : t('settings.saveChanges')}
+              {updateProfileMutation.isPending 
+                ? (locale === 'fr' ? 'Enregistrement...' : 'Saving...') 
+                : (locale === 'fr' ? 'Enregistrer' : 'Save Changes')}
             </Button>
           </form>
         </CardContent>
@@ -195,14 +165,18 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lock className="w-5 h-5" />
-            {t('settings.security')}
+            {locale === 'fr' ? 'Sécurité' : 'Security'}
           </CardTitle>
-          <CardDescription>{t('settings.securityDesc')}</CardDescription>
+          <CardDescription>
+            {locale === 'fr' ? 'Mettez à jour votre mot de passe' : 'Update your password'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('settings.currentPassword')}</label>
+              <label className="text-sm font-medium">
+                {locale === 'fr' ? 'Mot de passe actuel' : 'Current Password'}
+              </label>
               <Input
                 type="password"
                 value={passwords.currentPassword}
@@ -212,7 +186,9 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('settings.newPassword')}</label>
+              <label className="text-sm font-medium">
+                {locale === 'fr' ? 'Nouveau mot de passe' : 'New Password'}
+              </label>
               <Input
                 type="password"
                 value={passwords.newPassword}
@@ -222,7 +198,9 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('settings.confirmNewPassword')}</label>
+              <label className="text-sm font-medium">
+                {locale === 'fr' ? 'Confirmer le nouveau mot de passe' : 'Confirm New Password'}
+              </label>
               <Input
                 type="password"
                 value={passwords.confirmPassword}
@@ -232,16 +210,57 @@ export default function SettingsPage() {
             </div>
 
             {passwordMessage && (
-              <p className={`text-sm ${passwordMessage.includes('success') ? 'text-green-500' : 'text-red-500'}`}>
+              <p className={`text-sm ${passwordMessage.includes('succès') || passwordMessage.includes('success') ? 'text-green-500' : 'text-red-500'}`}>
                 {passwordMessage}
               </p>
             )}
 
             <Button type="submit" disabled={updatePasswordMutation.isPending}>
               <Lock className="w-4 h-4 mr-2" />
-              {updatePasswordMutation.isPending ? t('common.loading') : t('settings.updatePassword')}
+              {updatePasswordMutation.isPending 
+                ? (locale === 'fr' ? 'Mise à jour...' : 'Updating...') 
+                : (locale === 'fr' ? 'Mettre à jour le mot de passe' : 'Update Password')}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Language Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="w-5 h-5" />
+            {locale === 'fr' ? 'Langue' : 'Language'}
+          </CardTitle>
+          <CardDescription>
+            {locale === 'fr' ? "Choisissez la langue de l'interface" : 'Choose the interface language'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setLocale('fr')}
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
+                locale === 'fr' 
+                  ? 'border-primary bg-primary/10 text-primary' 
+                  : 'border-border hover:border-primary/50'
+              }`}
+            >
+              <span className="text-xl">🇫🇷</span>
+              Français
+            </button>
+            <button
+              onClick={() => setLocale('en')}
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
+                locale === 'en' 
+                  ? 'border-primary bg-primary/10 text-primary' 
+                  : 'border-border hover:border-primary/50'
+              }`}
+            >
+              <span className="text-xl">🇬🇧</span>
+              English
+            </button>
+          </div>
         </CardContent>
       </Card>
     </div>

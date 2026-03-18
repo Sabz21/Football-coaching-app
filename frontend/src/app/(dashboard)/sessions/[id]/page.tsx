@@ -1,382 +1,462 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams, useRouter } from 'next/navigation';
-import {
-  ArrowLeft,
-  Calendar,
-  Clock,
-  MapPin,
-  Users,
-  FileText,
-  Edit,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  Star,
-  Send,
-} from 'lucide-react';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowLeft, Edit2, Save, Calendar, Clock, MapPin, User, Target, Dumbbell, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
-import { cn, getInitials, formatDate, formatTime } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { formatDate, formatTime, getInitials } from '@/lib/utils';
 
-const STATUS_STYLES = {
-  SCHEDULED: { label: 'Scheduled', color: 'bg-blue-500/20 text-blue-500' },
-  IN_PROGRESS: { label: 'In Progress', color: 'bg-yellow-500/20 text-yellow-500' },
-  COMPLETED: { label: 'Completed', color: 'bg-green-500/20 text-green-500' },
-  CANCELLED: { label: 'Cancelled', color: 'bg-red-500/20 text-red-500' },
-  NO_SHOW: { label: 'No Show', color: 'bg-gray-500/20 text-gray-500' },
+const SESSION_TYPES: Record<string, { labelFr: string; labelEn: string; emoji: string }> = {
+  INDIVIDUAL: { labelFr: 'Individuel', labelEn: 'Individual', emoji: '👤' },
+  GROUP: { labelFr: 'Groupe', labelEn: 'Group', emoji: '👥' },
+  PHYSICAL: { labelFr: 'Physique', labelEn: 'Physical', emoji: '💪' },
+  TECHNICAL: { labelFr: 'Technique', labelEn: 'Technical', emoji: '⚽' },
+  TACTICAL: { labelFr: 'Tactique', labelEn: 'Tactical', emoji: '📋' },
 };
 
 export default function SessionDetailPage() {
-  const params = useParams();
+  const { id } = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const sessionId = params.id as string;
-
-  const [showReportForm, setShowReportForm] = useState(false);
-  const [report, setReport] = useState('');
-  const [rating, setRating] = useState(7);
-  const [playerFeedback, setPlayerFeedback] = useState<Record<string, { content: string; rating: number; attended: boolean }>>({});
+  const { locale } = useI18n();
+  const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [formData, setFormData] = useState<any>({});
 
   // Fetch session
   const { data: session, isLoading } = useQuery({
-    queryKey: ['session', sessionId],
+    queryKey: ['session', id],
     queryFn: async () => {
-      const res = await api.get(`/sessions/${sessionId}`);
+      const res = await api.get(`/sessions/${id}`);
       return res.data;
     },
   });
 
-  // Initialize player feedback when session loads
-  useState(() => {
-    if (session?.players) {
-      const initial: Record<string, any> = {};
-      session.players.forEach((sp: any) => {
-        initial[sp.player.id] = { content: '', rating: 7, attended: true };
+  // Initialize form data when session loads
+  useEffect(() => {
+    if (session) {
+      setFormData({
+        title: session.title || '',
+        date: session.date ? session.date.split('T')[0] : '',
+        time: session.time || '',
+        duration: session.duration || 60,
+        type: session.type || 'INDIVIDUAL',
+        location: session.location || '',
+        objectives: session.objectives || '',
+        exercises: session.exercises || '',
+        notes: session.notes || '',
+        feedback: session.feedback || '',
       });
-      setPlayerFeedback(initial);
     }
-  });
+  }, [session]);
 
-  // Submit report mutation
-  const submitReportMutation = useMutation({
-    mutationFn: async () => {
-      const feedback = Object.entries(playerFeedback).map(([playerId, data]) => ({
-        playerId,
-        ...data,
-      }));
-      return api.post(`/sessions/${sessionId}/report`, {
-        report,
-        rating,
-        playerFeedback: feedback,
-      });
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await api.put(`/sessions/${id}`, data);
+      return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['session', sessionId] });
-      setShowReportForm(false);
+      queryClient.invalidateQueries({ queryKey: ['session', id] });
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      setIsEditing(false);
+    },
+    onError: (err: any) => {
+      setError(err.response?.data?.error || (locale === 'fr' ? 'Échec de la mise à jour' : 'Failed to update'));
     },
   });
 
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      return api.delete(`/sessions/${sessionId}`);
+      await api.delete(`/sessions/${id}`);
     },
     onSuccess: () => {
-      router.push('/calendar');
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      router.push('/sessions');
+    },
+    onError: (err: any) => {
+      setError(err.response?.data?.error || (locale === 'fr' ? 'Échec de la suppression' : 'Failed to delete'));
     },
   });
 
-  const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this session?')) {
-      deleteMutation.mutate();
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    updateMutation.mutate(formData);
   };
 
-  const updatePlayerFeedback = (playerId: string, field: string, value: any) => {
-    setPlayerFeedback((prev) => ({
-      ...prev,
-      [playerId]: { ...prev[playerId], [field]: value },
-    }));
+  const updateField = (field: string, value: any) => {
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
   };
+
+  const getTypeInfo = (type: string) => {
+    return SESSION_TYPES[type] || SESSION_TYPES.INDIVIDUAL;
+  };
+
+  const isPast = session?.date && new Date(session.date) < new Date();
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6 animate-pulse">
+        <div className="h-10 bg-muted rounded w-1/3" />
+        <Card><CardContent className="p-6"><div className="h-40 bg-muted rounded" /></CardContent></Card>
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">Session not found</p>
-        <Link href="/calendar">
-          <Button variant="link">Back to calendar</Button>
-        </Link>
+      <div className="text-center py-16">
+        <p className="text-muted-foreground">
+          {locale === 'fr' ? 'Séance non trouvée' : 'Session not found'}
+        </p>
+        <Button variant="outline" className="mt-4" onClick={() => router.back()}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          {locale === 'fr' ? 'Retour' : 'Back'}
+        </Button>
       </div>
     );
   }
 
-  const statusStyle = STATUS_STYLES[session.status as keyof typeof STATUS_STYLES] || STATUS_STYLES.SCHEDULED;
+  const typeInfo = getTypeInfo(session.type);
 
   return (
-    <div className="space-y-6 animate-in">
+    <div className="space-y-6 animate-in max-w-3xl">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight">
-              {session.title || 'Training Session'}
-            </h1>
-            <Badge className={statusStyle.color}>{statusStyle.label}</Badge>
-          </div>
-          <p className="text-muted-foreground">
-            {formatDate(session.date)} • {formatTime(session.startTime)} - {formatTime(session.endTime)}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {session.status === 'SCHEDULED' && (
-            <Button variant="outline" onClick={() => setShowReportForm(true)}>
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Complete & Report
-            </Button>
-          )}
-          <Button variant="outline" size="icon" onClick={handleDelete}>
-            <Trash2 className="w-4 h-4" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="w-5 h-5" />
           </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {session.title || (locale === 'fr' ? 'Séance' : 'Session')}
+            </h1>
+            <p className="text-muted-foreground">{formatDate(session.date)}</p>
+          </div>
         </div>
+        {!isEditing && (
+          <Button onClick={() => setIsEditing(true)}>
+            <Edit2 className="w-4 h-4 mr-2" />
+            {locale === 'fr' ? 'Modifier' : 'Edit'}
+          </Button>
+        )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Session Info */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Session Info</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">{formatDate(session.date, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-                  <p className="text-sm text-muted-foreground">Date</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">{formatTime(session.startTime)} - {formatTime(session.endTime)}</p>
-                  <p className="text-sm text-muted-foreground">Time</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <MapPin className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">{session.location}</p>
-                  <p className="text-sm text-muted-foreground">Location</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Users className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">{session.type}</p>
-                  <p className="text-sm text-muted-foreground">Type</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Objectives */}
-          {session.objectives && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Objectives</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm whitespace-pre-wrap">{session.objectives}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Session Report (if completed) */}
-          {session.status === 'COMPLETED' && session.report && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Session Report
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {session.rating && (
-                  <div className="flex items-center gap-2 mb-4">
-                    <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                    <span className="font-medium">{session.rating}/10</span>
-                  </div>
-                )}
-                <p className="text-sm whitespace-pre-wrap">{session.report}</p>
-              </CardContent>
-            </Card>
-          )}
+      {error && (
+        <div className="p-4 rounded-xl bg-destructive/10 text-destructive">
+          {error}
         </div>
+      )}
 
-        {/* Players */}
-        <div className="lg:col-span-2">
+      {isEditing ? (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Edit Form */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Players ({session.players?.length || 0})
+              <CardTitle className="flex items-center gap-2">
+                <Dumbbell className="w-5 h-5" />
+                {locale === 'fr' ? 'Informations' : 'Information'}
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              {session.players?.length > 0 ? (
-                <div className="space-y-3">
-                  {session.players.map((sp: any) => (
-                    <Link
-                      key={sp.player.id}
-                      href={`/players/${sp.player.id}`}
-                      className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
-                    >
-                      <Avatar className="w-12 h-12">
-                        <AvatarFallback className="bg-primary/20 text-primary">
-                          {getInitials(sp.player.firstName, sp.player.lastName)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <p className="font-medium">
-                          {sp.player.firstName} {sp.player.lastName}
-                        </p>
-                        {sp.player.position && (
-                          <p className="text-sm text-muted-foreground">{sp.player.position}</p>
-                        )}
-                      </div>
-                      {session.status === 'COMPLETED' && (
-                        <div className="flex items-center gap-2">
-                          {sp.attended ? (
-                            <Badge variant="success" className="bg-green-500/20 text-green-500">Present</Badge>
-                          ) : (
-                            <Badge variant="destructive" className="bg-red-500/20 text-red-500">Absent</Badge>
-                          )}
-                          {sp.rating && (
-                            <Badge variant="secondary">{sp.rating}/10</Badge>
-                          )}
-                        </div>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center py-8 text-muted-foreground">No players in this session</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Report Form Modal */}
-      {showReportForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <CardHeader>
-              <CardTitle>Complete Session & Add Report</CardTitle>
-              <CardDescription>Record the session outcome and player feedback</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Overall Rating */}
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Session Rating (1-10)</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={rating}
-                    onChange={(e) => setRating(parseInt(e.target.value))}
-                    className="flex-1"
-                  />
-                  <span className="w-12 text-center font-bold text-lg">{rating}</span>
-                </div>
-              </div>
-
-              {/* Report */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Session Report</label>
-                <textarea
-                  className="w-full min-h-[100px] rounded-xl border border-input bg-background px-3 py-2 text-sm resize-none"
-                  placeholder="How did the session go? What was covered?"
-                  value={report}
-                  onChange={(e) => setReport(e.target.value)}
+                <label className="text-sm font-medium">
+                  {locale === 'fr' ? 'Titre' : 'Title'}
+                </label>
+                <Input
+                  value={formData.title}
+                  onChange={(e) => updateField('title', e.target.value)}
                 />
               </div>
 
-              {/* Player Feedback */}
-              <div className="space-y-4">
-                <label className="text-sm font-medium">Player Feedback</label>
-                {session.players?.map((sp: any) => (
-                  <div key={sp.player.id} className="p-4 rounded-xl bg-secondary/50 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="w-8 h-8">
-                          <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                            {getInitials(sp.player.firstName, sp.player.lastName)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium">{sp.player.firstName} {sp.player.lastName}</span>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <label className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={playerFeedback[sp.player.id]?.attended ?? true}
-                            onChange={(e) => updatePlayerFeedback(sp.player.id, 'attended', e.target.checked)}
-                            className="rounded"
-                          />
-                          Present
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">Rating:</span>
-                          <select
-                            value={playerFeedback[sp.player.id]?.rating || 7}
-                            onChange={(e) => updatePlayerFeedback(sp.player.id, 'rating', parseInt(e.target.value))}
-                            className="h-8 rounded-lg border border-input bg-background px-2 text-sm"
-                          >
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                              <option key={n} value={n}>{n}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                    <Input
-                      placeholder="Individual notes for this player..."
-                      value={playerFeedback[sp.player.id]?.content || ''}
-                      onChange={(e) => updatePlayerFeedback(sp.player.id, 'content', e.target.value)}
-                    />
-                  </div>
-                ))}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Date</label>
+                  <Input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => updateField('date', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    {locale === 'fr' ? 'Heure' : 'Time'}
+                  </label>
+                  <Input
+                    type="time"
+                    value={formData.time}
+                    onChange={(e) => updateField('time', e.target.value)}
+                  />
+                </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex justify-end gap-4 pt-4 border-t">
-                <Button variant="outline" onClick={() => setShowReportForm(false)}>
-                  Cancel
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    {locale === 'fr' ? 'Durée (min)' : 'Duration (min)'}
+                  </label>
+                  <Input
+                    type="number"
+                    value={formData.duration}
+                    onChange={(e) => updateField('duration', parseInt(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    {locale === 'fr' ? 'Lieu' : 'Location'}
+                  </label>
+                  <Input
+                    value={formData.location}
+                    onChange={(e) => updateField('location', e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Content */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                {locale === 'fr' ? 'Contenu' : 'Content'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  {locale === 'fr' ? 'Objectifs' : 'Objectives'}
+                </label>
+                <textarea
+                  className="w-full min-h-[80px] rounded-xl border border-input bg-background px-4 py-3 text-sm resize-none"
+                  value={formData.objectives}
+                  onChange={(e) => updateField('objectives', e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  {locale === 'fr' ? 'Exercices' : 'Exercises'}
+                </label>
+                <textarea
+                  className="w-full min-h-[100px] rounded-xl border border-input bg-background px-4 py-3 text-sm resize-none"
+                  value={formData.exercises}
+                  onChange={(e) => updateField('exercises', e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Notes</label>
+                <textarea
+                  className="w-full min-h-[80px] rounded-xl border border-input bg-background px-4 py-3 text-sm resize-none"
+                  value={formData.notes}
+                  onChange={(e) => updateField('notes', e.target.value)}
+                />
+              </div>
+
+              {isPast && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    {locale === 'fr' ? 'Feedback après séance' : 'Post-session Feedback'}
+                  </label>
+                  <textarea
+                    className="w-full min-h-[80px] rounded-xl border border-input bg-background px-4 py-3 text-sm resize-none"
+                    value={formData.feedback}
+                    onChange={(e) => updateField('feedback', e.target.value)}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Actions */}
+          <div className="flex justify-between">
+            <Button 
+              type="button" 
+              variant="destructive" 
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              {locale === 'fr' ? 'Supprimer' : 'Delete'}
+            </Button>
+            <div className="flex gap-4">
+              <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
+                {locale === 'fr' ? 'Annuler' : 'Cancel'}
+              </Button>
+              <Button type="submit" disabled={updateMutation.isPending}>
+                <Save className="w-4 h-4 mr-2" />
+                {updateMutation.isPending 
+                  ? (locale === 'fr' ? 'Enregistrement...' : 'Saving...') 
+                  : (locale === 'fr' ? 'Enregistrer' : 'Save')}
+              </Button>
+            </div>
+          </div>
+        </form>
+      ) : (
+        /* View Mode */
+        <div className="space-y-6">
+          {/* Session Info Card */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-3xl">
+                  {typeInfo.emoji}
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold">{session.title}</h2>
+                  <Badge className="mt-1">
+                    {locale === 'fr' ? typeInfo.labelFr : typeInfo.labelEn}
+                  </Badge>
+                </div>
+                <Badge className={`ml-auto ${isPast ? 'bg-green-500/20 text-green-500' : 'bg-blue-500/20 text-blue-500'}`}>
+                  {isPast 
+                    ? (locale === 'fr' ? 'Terminée' : 'Completed') 
+                    : (locale === 'fr' ? 'À venir' : 'Upcoming')}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <span>{formatDate(session.date)}</span>
+                </div>
+                {session.time && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    <span>{formatTime(session.time)}</span>
+                  </div>
+                )}
+                {session.duration && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Dumbbell className="w-4 h-4 text-muted-foreground" />
+                    <span>{session.duration} min</span>
+                  </div>
+                )}
+                {session.location && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    <span>{session.location}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Player */}
+          {session.player && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  {locale === 'fr' ? 'Joueur' : 'Player'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Link href={`/players/${session.player.id}`}>
+                  <div className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors">
+                    <Avatar className="w-12 h-12">
+                      <AvatarFallback className="bg-primary/20 text-primary">
+                        {getInitials(session.player.firstName, session.player.lastName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{session.player.firstName} {session.player.lastName}</p>
+                      <p className="text-sm text-muted-foreground">{session.player.position}</p>
+                    </div>
+                  </div>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Content */}
+          {(session.objectives || session.exercises || session.notes) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5" />
+                  {locale === 'fr' ? 'Contenu' : 'Content'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {session.objectives && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">
+                      {locale === 'fr' ? 'Objectifs' : 'Objectives'}
+                    </p>
+                    <p className="whitespace-pre-wrap">{session.objectives}</p>
+                  </div>
+                )}
+                {session.exercises && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">
+                      {locale === 'fr' ? 'Exercices' : 'Exercises'}
+                    </p>
+                    <p className="whitespace-pre-wrap">{session.exercises}</p>
+                  </div>
+                )}
+                {session.notes && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Notes</p>
+                    <p className="whitespace-pre-wrap">{session.notes}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Feedback */}
+          {session.feedback && (
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  {locale === 'fr' ? 'Feedback' : 'Feedback'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="whitespace-pre-wrap">{session.feedback}</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="max-w-md mx-4">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-2">
+                {locale === 'fr' ? 'Confirmer la suppression' : 'Confirm Deletion'}
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {locale === 'fr' 
+                  ? 'Êtes-vous sûr de vouloir supprimer cette séance ? Cette action est irréversible.'
+                  : 'Are you sure you want to delete this session? This action cannot be undone.'}
+              </p>
+              <div className="flex justify-end gap-4">
+                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+                  {locale === 'fr' ? 'Annuler' : 'Cancel'}
                 </Button>
-                <Button onClick={() => submitReportMutation.mutate()} disabled={submitReportMutation.isPending}>
-                  <Send className="w-4 h-4 mr-2" />
-                  {submitReportMutation.isPending ? 'Saving...' : 'Complete Session'}
+                <Button 
+                  variant="destructive" 
+                  onClick={() => deleteMutation.mutate()}
+                  disabled={deleteMutation.isPending}
+                >
+                  {deleteMutation.isPending 
+                    ? (locale === 'fr' ? 'Suppression...' : 'Deleting...') 
+                    : (locale === 'fr' ? 'Supprimer' : 'Delete')}
                 </Button>
               </div>
             </CardContent>

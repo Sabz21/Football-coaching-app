@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Triangle, Mail, Lock, Eye, EyeOff } from 'lucide-react';
@@ -17,6 +17,12 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [locale, setLocale] = useState('fr');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('locale');
+    if (saved) setLocale(saved);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +33,7 @@ export default function LoginPage() {
       await login(email, password);
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed');
+      setError(err.response?.data?.error || (locale === 'fr' ? 'Échec de la connexion' : 'Login failed'));
     } finally {
       setIsLoading(false);
     }
@@ -42,8 +48,12 @@ export default function LoginPage() {
               <Triangle className="w-7 h-7 text-primary-foreground fill-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Welcome back</CardTitle>
-          <CardDescription>Sign in to your Vertex account</CardDescription>
+          <CardTitle className="text-2xl">
+            {locale === 'fr' ? 'Bon retour' : 'Welcome back'}
+          </CardTitle>
+          <CardDescription>
+            {locale === 'fr' ? 'Connectez-vous à votre compte Vertex' : 'Sign in to your Vertex account'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -59,7 +69,7 @@ export default function LoginPage() {
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder="vous@exemple.com"
                   className="pl-10"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -69,7 +79,9 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Password</label>
+              <label className="text-sm font-medium">
+                {locale === 'fr' ? 'Mot de passe' : 'Password'}
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -92,21 +104,49 @@ export default function LoginPage() {
 
             <div className="flex justify-end">
               <Link href="/auth/forgot-password" className="text-sm text-primary hover:underline">
-                Forgot password?
+                {locale === 'fr' ? 'Mot de passe oublié ?' : 'Forgot password?'}
               </Link>
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading 
+                ? (locale === 'fr' ? 'Connexion...' : 'Signing in...') 
+                : (locale === 'fr' ? 'Se connecter' : 'Sign in')}
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
-              Don't have an account?{' '}
+              {locale === 'fr' ? "Pas encore de compte ? " : "Don't have an account? "}
               <Link href="/auth/register" className="text-primary hover:underline">
-                Sign up
+                {locale === 'fr' ? "S'inscrire" : 'Sign up'}
               </Link>
             </p>
           </form>
+
+          {/* Language Switcher */}
+          <div className="mt-6 pt-4 border-t flex justify-center gap-2">
+            <button
+              onClick={() => {
+                setLocale('fr');
+                localStorage.setItem('locale', 'fr');
+              }}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                locale === 'fr' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              🇫🇷 Français
+            </button>
+            <button
+              onClick={() => {
+                setLocale('en');
+                localStorage.setItem('locale', 'en');
+              }}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                locale === 'en' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              🇬🇧 English
+            </button>
+          </div>
         </CardContent>
       </Card>
     </div>

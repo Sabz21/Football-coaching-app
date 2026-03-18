@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Triangle, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
@@ -23,18 +23,24 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [locale, setLocale] = useState('fr');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('locale');
+    if (saved) setLocale(saved);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError(locale === 'fr' ? 'Les mots de passe ne correspondent pas' : 'Passwords do not match');
       return;
     }
 
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError(locale === 'fr' ? 'Le mot de passe doit contenir au moins 6 caractères' : 'Password must be at least 6 characters');
       return;
     }
 
@@ -50,7 +56,7 @@ export default function RegisterPage() {
       });
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Registration failed');
+      setError(err.response?.data?.error || (locale === 'fr' ? "Échec de l'inscription" : 'Registration failed'));
     } finally {
       setIsLoading(false);
     }
@@ -65,8 +71,12 @@ export default function RegisterPage() {
               <Triangle className="w-7 h-7 text-primary-foreground fill-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Create account</CardTitle>
-          <CardDescription>Start managing your coaching business</CardDescription>
+          <CardTitle className="text-2xl">
+            {locale === 'fr' ? 'Créer un compte' : 'Create account'}
+          </CardTitle>
+          <CardDescription>
+            {locale === 'fr' ? 'Commencez à gérer votre activité de coach' : 'Start managing your coaching business'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -78,11 +88,13 @@ export default function RegisterPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">First Name</label>
+                <label className="text-sm font-medium">
+                  {locale === 'fr' ? 'Prénom' : 'First Name'}
+                </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="John"
+                    placeholder={locale === 'fr' ? 'Jean' : 'John'}
                     className="pl-10"
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
@@ -91,9 +103,11 @@ export default function RegisterPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Last Name</label>
+                <label className="text-sm font-medium">
+                  {locale === 'fr' ? 'Nom' : 'Last Name'}
+                </label>
                 <Input
-                  placeholder="Doe"
+                  placeholder={locale === 'fr' ? 'Dupont' : 'Doe'}
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   required
@@ -107,7 +121,7 @@ export default function RegisterPage() {
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder="vous@exemple.com"
                   className="pl-10"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -117,12 +131,14 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Phone (optional)</label>
+              <label className="text-sm font-medium">
+                {locale === 'fr' ? 'Téléphone (optionnel)' : 'Phone (optional)'}
+              </label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="tel"
-                  placeholder="+1 234 567 890"
+                  placeholder="+33 6 12 34 56 78"
                   className="pl-10"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -131,7 +147,9 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Password</label>
+              <label className="text-sm font-medium">
+                {locale === 'fr' ? 'Mot de passe' : 'Password'}
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -153,7 +171,9 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Confirm Password</label>
+              <label className="text-sm font-medium">
+                {locale === 'fr' ? 'Confirmer le mot de passe' : 'Confirm Password'}
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -168,16 +188,44 @@ export default function RegisterPage() {
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Creating account...' : 'Create account'}
+              {isLoading 
+                ? (locale === 'fr' ? 'Création du compte...' : 'Creating account...') 
+                : (locale === 'fr' ? 'Créer le compte' : 'Create account')}
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{' '}
+              {locale === 'fr' ? 'Déjà un compte ? ' : 'Already have an account? '}
               <Link href="/auth/login" className="text-primary hover:underline">
-                Sign in
+                {locale === 'fr' ? 'Se connecter' : 'Sign in'}
               </Link>
             </p>
           </form>
+
+          {/* Language Switcher */}
+          <div className="mt-6 pt-4 border-t flex justify-center gap-2">
+            <button
+              onClick={() => {
+                setLocale('fr');
+                localStorage.setItem('locale', 'fr');
+              }}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                locale === 'fr' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              🇫🇷 Français
+            </button>
+            <button
+              onClick={() => {
+                setLocale('en');
+                localStorage.setItem('locale', 'en');
+              }}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                locale === 'en' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              🇬🇧 English
+            </button>
+          </div>
         </CardContent>
       </Card>
     </div>

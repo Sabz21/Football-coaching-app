@@ -1,39 +1,40 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Save, Calendar, Clock, MapPin, Users, FileText } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Save, Calendar, Clock, User, Dumbbell, Target } from 'lucide-react';
 import { api } from '@/lib/api';
-import { cn, getInitials } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { getInitials } from '@/lib/utils';
 
 const SESSION_TYPES = [
-  { value: 'INDIVIDUAL', label: 'Individual', description: '1-on-1 training' },
-  { value: 'GROUP', label: 'Group', description: 'Multiple players' },
-  { value: 'ASSESSMENT', label: 'Assessment', description: 'Skills evaluation' },
-  { value: 'TRIAL', label: 'Trial', description: 'New player trial' },
+  { value: 'INDIVIDUAL', labelFr: 'Individuel', labelEn: 'Individual', emoji: '👤' },
+  { value: 'GROUP', labelFr: 'Groupe', labelEn: 'Group', emoji: '👥' },
+  { value: 'PHYSICAL', labelFr: 'Physique', labelEn: 'Physical', emoji: '💪' },
+  { value: 'TECHNICAL', labelFr: 'Technique', labelEn: 'Technical', emoji: '⚽' },
+  { value: 'TACTICAL', labelFr: 'Tactique', labelEn: 'Tactical', emoji: '📋' },
 ];
 
 export default function NewSessionPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const presetDate = searchParams.get('date');
-
+  const queryClient = useQueryClient();
+  const { locale } = useI18n();
   const [error, setError] = useState('');
-  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     title: '',
-    date: presetDate ? new Date(presetDate).toISOString().split('T')[0] : '',
-    startTime: '09:00',
-    endTime: '10:00',
-    location: '',
+    date: '',
+    time: '',
+    duration: '60',
     type: 'INDIVIDUAL',
+    playerId: '',
+    location: '',
     objectives: '',
+    exercises: '',
     notes: '',
   });
 
@@ -50,88 +51,91 @@ export default function NewSessionPage() {
     mutationFn: async (data: any) => {
       const res = await api.post('/sessions', {
         ...data,
-        playerIds: selectedPlayers,
+        duration: parseInt(data.duration) || 60,
+        playerId: data.playerId || null,
       });
       return res.data;
     },
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
       router.push(`/sessions/${data.id}`);
     },
     onError: (err: any) => {
-      setError(err.response?.data?.error || 'Failed to create session');
+      setError(err.response?.data?.error || (locale === 'fr' ? 'Erreur lors de la création' : 'Failed to create session'));
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (!formData.date || !formData.startTime || !formData.endTime || !formData.location) {
-      setError('Date, time, and location are required');
+    
+    if (!formData.title.trim()) {
+      setError(locale === 'fr' ? 'Le titre est requis' : 'Title is required');
       return;
     }
-
-    if (selectedPlayers.length === 0) {
-      setError('Please select at least one player');
+    if (!formData.date) {
+      setError(locale === 'fr' ? 'La date est requise' : 'Date is required');
       return;
     }
 
     createMutation.mutate(formData);
   };
 
-  const togglePlayer = (playerId: string) => {
-    setSelectedPlayers((prev) =>
-      prev.includes(playerId)
-        ? prev.filter((id) => id !== playerId)
-        : [...prev, playerId]
-    );
-  };
-
-  const updateField = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const updateField = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   return (
-    <div className="space-y-6 animate-in max-w-3xl">
+    <div className="space-y-6 animate-in max-w-2xl">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">New Session</h1>
-          <p className="text-muted-foreground">Schedule a training session</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {locale === 'fr' ? 'Nouvelle Séance' : 'New Session'}
+          </h1>
+          <p className="text-muted-foreground">
+            {locale === 'fr' ? "Planifier une séance d'entraînement" : 'Schedule a training session'}
+          </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {error && (
-          <div className="p-4 rounded-xl bg-destructive/10 text-destructive">
-            {error}
-          </div>
-        )}
+      {error && (
+        <div className="p-4 rounded-xl bg-destructive/10 text-destructive">
+          {error}
+        </div>
+      )}
 
-        {/* Session Details */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Info */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Session Details
+              <Dumbbell className="w-5 h-5" />
+              {locale === 'fr' ? 'Informations' : 'Information'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Session Title (optional)</label>
+              <label className="text-sm font-medium">
+                {locale === 'fr' ? 'Titre de la séance' : 'Session Title'} *
+              </label>
               <Input
-                placeholder="e.g., Shooting Practice, Fitness Training..."
+                placeholder={locale === 'fr' ? 'Ex: Travail de finition' : 'Ex: Finishing drills'}
                 value={formData.title}
                 onChange={(e) => updateField('title', e.target.value)}
+                required
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Date *</label>
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Date *
+                </label>
                 <Input
                   type="date"
                   value={formData.date}
@@ -140,143 +144,174 @@ export default function NewSessionPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Start Time *</label>
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  {locale === 'fr' ? 'Heure' : 'Time'}
+                </label>
                 <Input
                   type="time"
-                  value={formData.startTime}
-                  onChange={(e) => updateField('startTime', e.target.value)}
-                  required
+                  value={formData.time}
+                  onChange={(e) => updateField('time', e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  {locale === 'fr' ? 'Durée (minutes)' : 'Duration (minutes)'}
+                </label>
+                <Input
+                  type="number"
+                  min="15"
+                  max="240"
+                  value={formData.duration}
+                  onChange={(e) => updateField('duration', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">End Time *</label>
+                <label className="text-sm font-medium">
+                  {locale === 'fr' ? 'Lieu' : 'Location'}
+                </label>
                 <Input
-                  type="time"
-                  value={formData.endTime}
-                  onChange={(e) => updateField('endTime', e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Location *</label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Training ground, Stadium, etc."
-                  className="pl-10"
+                  placeholder={locale === 'fr' ? 'Terrain, salle...' : 'Field, gym...'}
                   value={formData.location}
                   onChange={(e) => updateField('location', e.target.value)}
-                  required
                 />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Session Type</label>
-              <div className="grid grid-cols-2 gap-2">
-                {SESSION_TYPES.map((type) => (
-                  <button
-                    key={type.value}
-                    type="button"
-                    onClick={() => updateField('type', type.value)}
-                    className={cn(
-                      'p-3 rounded-xl border text-left transition-colors',
-                      formData.type === type.value
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border hover:border-primary/50'
-                    )}
-                  >
-                    <p className="font-medium text-sm">{type.label}</p>
-                    <p className="text-xs text-muted-foreground">{type.description}</p>
-                  </button>
-                ))}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Select Players */}
+        {/* Session Type */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Select Players
+            <CardTitle>
+              {locale === 'fr' ? 'Type de séance' : 'Session Type'}
             </CardTitle>
             <CardDescription>
-              {selectedPlayers.length} player{selectedPlayers.length !== 1 ? 's' : ''} selected
+              {locale === 'fr' ? 'Choisissez le type de travail' : 'Choose the type of work'}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {players?.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {SESSION_TYPES.map((type) => (
+                <button
+                  key={type.value}
+                  type="button"
+                  onClick={() => updateField('type', type.value)}
+                  className={`px-4 py-4 rounded-xl border text-center transition-all ${
+                    formData.type === type.value 
+                      ? 'border-primary bg-primary/10 text-primary shadow-sm' 
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <span className="text-2xl block mb-1">{type.emoji}</span>
+                  <span className="text-sm font-medium">
+                    {locale === 'fr' ? type.labelFr : type.labelEn}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Player Selection */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              {locale === 'fr' ? 'Joueur (optionnel)' : 'Player (optional)'}
+            </CardTitle>
+            <CardDescription>
+              {locale === 'fr' ? 'Associer cette séance à un joueur' : 'Associate this session with a player'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {players && players.length > 0 ? (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-60 overflow-y-auto">
+                <button
+                  type="button"
+                  onClick={() => updateField('playerId', '')}
+                  className={`p-3 rounded-xl border text-center transition-colors ${
+                    !formData.playerId 
+                      ? 'border-primary bg-primary/10' 
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <div className="w-10 h-10 mx-auto mb-1 rounded-full bg-secondary flex items-center justify-center">
+                    <User className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <p className="text-xs font-medium">
+                    {locale === 'fr' ? 'Aucun' : 'None'}
+                  </p>
+                </button>
                 {players.map((player: any) => (
                   <button
                     key={player.id}
                     type="button"
-                    onClick={() => togglePlayer(player.id)}
-                    className={cn(
-                      'flex items-center gap-3 p-3 rounded-xl border text-left transition-colors',
-                      selectedPlayers.includes(player.id)
-                        ? 'border-primary bg-primary/10'
+                    onClick={() => updateField('playerId', player.id)}
+                    className={`p-3 rounded-xl border text-center transition-colors ${
+                      formData.playerId === player.id 
+                        ? 'border-primary bg-primary/10' 
                         : 'border-border hover:border-primary/50'
-                    )}
+                    }`}
                   >
-                    <Avatar className="w-10 h-10">
-                      <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                    <Avatar className="w-10 h-10 mx-auto mb-1">
+                      <AvatarFallback className={`text-sm ${formData.playerId === player.id ? 'bg-primary/20 text-primary' : 'bg-secondary'}`}>
                         {getInitials(player.firstName, player.lastName)}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {player.firstName} {player.lastName}
-                      </p>
-                      {player.position && (
-                        <p className="text-xs text-muted-foreground">{player.position}</p>
-                      )}
-                    </div>
-                    {selectedPlayers.includes(player.id) && (
-                      <Badge variant="default" className="shrink-0">Selected</Badge>
-                    )}
+                    <p className="text-xs font-medium truncate">{player.firstName}</p>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>No players yet</p>
-                <Button variant="link" onClick={() => router.push('/players/new')}>
-                  Add your first player
-                </Button>
-              </div>
+              <p className="text-sm text-muted-foreground text-center py-4">
+                {locale === 'fr' ? 'Aucun joueur disponible' : 'No players available'}
+              </p>
             )}
           </CardContent>
         </Card>
 
-        {/* Notes */}
+        {/* Content */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Session Notes
+              <Target className="w-5 h-5" />
+              {locale === 'fr' ? 'Contenu de la séance' : 'Session Content'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Objectives</label>
+              <label className="text-sm font-medium">
+                {locale === 'fr' ? 'Objectifs' : 'Objectives'}
+              </label>
               <textarea
-                className="w-full min-h-[80px] rounded-xl border border-input bg-background px-3 py-2 text-sm resize-none"
-                placeholder="What do you want to achieve in this session?"
+                className="w-full min-h-[80px] rounded-xl border border-input bg-background px-4 py-3 text-sm resize-none"
+                placeholder={locale === 'fr' ? 'Les objectifs de cette séance...' : 'Goals for this session...'}
                 value={formData.objectives}
                 onChange={(e) => updateField('objectives', e.target.value)}
               />
             </div>
+
             <div className="space-y-2">
-              <label className="text-sm font-medium">Additional Notes</label>
+              <label className="text-sm font-medium">
+                {locale === 'fr' ? 'Exercices' : 'Exercises'}
+              </label>
               <textarea
-                className="w-full min-h-[80px] rounded-xl border border-input bg-background px-3 py-2 text-sm resize-none"
-                placeholder="Any other notes for this session..."
+                className="w-full min-h-[100px] rounded-xl border border-input bg-background px-4 py-3 text-sm resize-none"
+                placeholder={locale === 'fr' ? 'Liste des exercices prévus...' : 'List of planned exercises...'}
+                value={formData.exercises}
+                onChange={(e) => updateField('exercises', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Notes</label>
+              <textarea
+                className="w-full min-h-[80px] rounded-xl border border-input bg-background px-4 py-3 text-sm resize-none"
+                placeholder={locale === 'fr' ? 'Notes supplémentaires...' : 'Additional notes...'}
                 value={formData.notes}
                 onChange={(e) => updateField('notes', e.target.value)}
               />
@@ -287,11 +322,13 @@ export default function NewSessionPage() {
         {/* Actions */}
         <div className="flex justify-end gap-4">
           <Button type="button" variant="outline" onClick={() => router.back()}>
-            Cancel
+            {locale === 'fr' ? 'Annuler' : 'Cancel'}
           </Button>
           <Button type="submit" disabled={createMutation.isPending}>
             <Save className="w-4 h-4 mr-2" />
-            {createMutation.isPending ? 'Creating...' : 'Create Session'}
+            {createMutation.isPending 
+              ? (locale === 'fr' ? 'Création...' : 'Creating...') 
+              : (locale === 'fr' ? 'Créer la séance' : 'Create Session')}
           </Button>
         </div>
       </form>

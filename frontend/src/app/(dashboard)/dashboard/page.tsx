@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function HomePage() {
+export default function DashboardPage() {
   const router = useRouter();
+  const [locale, setLocale] = useState('fr');
 
   useEffect(() => {
-    // Check saved mode and redirect accordingly
+    const saved = localStorage.getItem('locale');
+    if (saved) setLocale(saved);
+    
     const savedMode = localStorage.getItem('vertex-mode');
     const savedTeam = localStorage.getItem('vertex-team');
 
@@ -24,8 +27,10 @@ export default function HomePage() {
   }, [router]);
 
   return (
-    <div className="flex items-center justify-center min-h-[50vh]">
-      <div className="animate-pulse text-muted-foreground">Loading...</div>
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-pulse text-muted-foreground">
+        {locale === 'fr' ? 'Chargement...' : 'Loading...'}
+      </div>
     </div>
   );
 }

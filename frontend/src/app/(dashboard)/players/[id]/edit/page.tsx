@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter, useParams } from 'next/navigation';
+import { ArrowLeft, Save, User, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
@@ -23,11 +23,13 @@ const POSITIONS = [
   { value: 'Attaquant', labelFr: 'Attaquant', labelEn: 'Forward' },
 ];
 
-export default function NewPlayerPage() {
+export default function EditPlayerPage() {
+  const { id } = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { locale } = useI18n();
   const [error, setError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -39,20 +41,59 @@ export default function NewPlayerPage() {
     notes: '',
   });
 
-  const createMutation = useMutation({
+  // Fetch player
+  const { data: player, isLoading } = useQuery({
+    queryKey: ['player', id],
+    queryFn: async () => {
+      const res = await api.get(`/players/${id}`);
+      return res.data;
+    },
+  });
+
+  // Initialize form when player loads
+  useEffect(() => {
+    if (player) {
+      setFormData({
+        firstName: player.firstName || '',
+        lastName: player.lastName || '',
+        position: player.position || '',
+        number: player.number?.toString() || '',
+        birthDate: player.birthDate ? player.birthDate.split('T')[0] : '',
+        email: player.email || '',
+        phone: player.phone || '',
+        notes: player.notes || '',
+      });
+    }
+  }, [player]);
+
+  const updateMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await api.post('/players', {
+      const res = await api.put(`/players/${id}`, {
         ...data,
         number: data.number ? parseInt(data.number) : null,
       });
       return res.data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['players'] });
-      router.push(`/players/${data.id}`);
+      queryClient.invalidateQueries({ queryKey: ['player', id] });
+      router.push(`/players/${id}`);
     },
     onError: (err: any) => {
-      setError(err.response?.data?.error || (locale === 'fr' ? 'Erreur lors de la création' : 'Failed to create player'));
+      setError(err.response?.data?.error || (locale === 'fr' ? 'Erreur lors de la mise à jour' : 'Failed to update player'));
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await api.delete(`/players/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['players'] });
+      router.push('/players');
+    },
+    onError: (err: any) => {
+      setError(err.response?.data?.error || (locale === 'fr' ? 'Erreur lors de la suppression' : 'Failed to delete player'));
     },
   });
 
@@ -65,12 +106,21 @@ export default function NewPlayerPage() {
       return;
     }
 
-    createMutation.mutate(formData);
+    updateMutation.mutate(formData);
   };
 
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-10 bg-muted rounded w-1/3" />
+        <Card><CardContent className="p-6"><div className="h-40 bg-muted rounded" /></CardContent></Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in max-w-2xl">
@@ -81,10 +131,10 @@ export default function NewPlayerPage() {
         </Button>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            {locale === 'fr' ? 'Nouveau Joueur' : 'New Player'}
+            {locale === 'fr' ? 'Modifier le joueur' : 'Edit Player'}
           </h1>
           <p className="text-muted-foreground">
-            {locale === 'fr' ? 'Ajouter un joueur à votre effectif' : 'Add a player to your squad'}
+            {player?.firstName} {player?.lastName}
           </p>
         </div>
       </div>
@@ -110,7 +160,6 @@ export default function NewPlayerPage() {
                   {locale === 'fr' ? 'Prénom' : 'First Name'} *
                 </label>
                 <Input
-                  placeholder={locale === 'fr' ? 'Prénom' : 'First name'}
                   value={formData.firstName}
                   onChange={(e) => updateField('firstName', e.target.value)}
                   required
@@ -121,7 +170,6 @@ export default function NewPlayerPage() {
                   {locale === 'fr' ? 'Nom' : 'Last Name'} *
                 </label>
                 <Input
-                  placeholder={locale === 'fr' ? 'Nom' : 'Last name'}
                   value={formData.lastName}
                   onChange={(e) => updateField('lastName', e.target.value)}
                   required
@@ -145,7 +193,6 @@ export default function NewPlayerPage() {
                 <label className="text-sm font-medium">Email</label>
                 <Input
                   type="email"
-                  placeholder="email@example.com"
                   value={formData.email}
                   onChange={(e) => updateField('email', e.target.value)}
                 />
@@ -155,7 +202,6 @@ export default function NewPlayerPage() {
                   {locale === 'fr' ? 'Téléphone' : 'Phone'}
                 </label>
                 <Input
-                  placeholder="+33 6 12 34 56 78"
                   value={formData.phone}
                   onChange={(e) => updateField('phone', e.target.value)}
                 />
@@ -199,7 +245,6 @@ export default function NewPlayerPage() {
                 type="number"
                 min="1"
                 max="99"
-                placeholder="10"
                 value={formData.number}
                 onChange={(e) => updateField('number', e.target.value)}
                 className="max-w-[100px]"
@@ -223,18 +268,60 @@ export default function NewPlayerPage() {
         </Card>
 
         {/* Actions */}
-        <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => router.back()}>
-            {locale === 'fr' ? 'Annuler' : 'Cancel'}
+        <div className="flex justify-between">
+          <Button 
+            type="button" 
+            variant="destructive" 
+            onClick={() => setShowDeleteConfirm(true)}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            {locale === 'fr' ? 'Supprimer' : 'Delete'}
           </Button>
-          <Button type="submit" disabled={createMutation.isPending}>
-            <Save className="w-4 h-4 mr-2" />
-            {createMutation.isPending 
-              ? (locale === 'fr' ? 'Création...' : 'Creating...') 
-              : (locale === 'fr' ? 'Créer le joueur' : 'Create Player')}
-          </Button>
+          <div className="flex gap-4">
+            <Button type="button" variant="outline" onClick={() => router.back()}>
+              {locale === 'fr' ? 'Annuler' : 'Cancel'}
+            </Button>
+            <Button type="submit" disabled={updateMutation.isPending}>
+              <Save className="w-4 h-4 mr-2" />
+              {updateMutation.isPending 
+                ? (locale === 'fr' ? 'Enregistrement...' : 'Saving...') 
+                : (locale === 'fr' ? 'Enregistrer' : 'Save')}
+            </Button>
+          </div>
         </div>
       </form>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="max-w-md mx-4">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-2">
+                {locale === 'fr' ? 'Confirmer la suppression' : 'Confirm Deletion'}
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {locale === 'fr' 
+                  ? `Êtes-vous sûr de vouloir supprimer ${player?.firstName} ${player?.lastName} ? Cette action est irréversible.`
+                  : `Are you sure you want to delete ${player?.firstName} ${player?.lastName}? This action cannot be undone.`}
+              </p>
+              <div className="flex justify-end gap-4">
+                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+                  {locale === 'fr' ? 'Annuler' : 'Cancel'}
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => deleteMutation.mutate()}
+                  disabled={deleteMutation.isPending}
+                >
+                  {deleteMutation.isPending 
+                    ? (locale === 'fr' ? 'Suppression...' : 'Deleting...') 
+                    : (locale === 'fr' ? 'Supprimer' : 'Delete')}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

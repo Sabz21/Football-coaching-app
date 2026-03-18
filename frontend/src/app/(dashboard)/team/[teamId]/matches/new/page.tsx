@@ -1,27 +1,35 @@
 'use client';
 
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Save, Trophy, Calendar, Clock, MapPin } from 'lucide-react';
+import { ArrowLeft, Trophy, Calendar, Clock, MapPin, Save } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
+const COMPETITION_TYPES = [
+  { value: 'FRIENDLY', labelFr: 'Amical', labelEn: 'Friendly', emoji: '🤝' },
+  { value: 'LEAGUE', labelFr: 'Championnat', labelEn: 'League', emoji: '🏆' },
+  { value: 'CUP', labelFr: 'Coupe', labelEn: 'Cup', emoji: '🏅' },
+];
+
 const CUP_ROUNDS = [
-  { value: 'group', labelFr: 'Phase de poules', labelEn: 'Group Stage' },
-  { value: 'r16', labelFr: '16e de finale', labelEn: 'Round of 16' },
-  { value: 'qf', labelFr: 'Quarts de finale', labelEn: 'Quarter-finals' },
-  { value: 'sf', labelFr: 'Demi-finale', labelEn: 'Semi-final' },
-  { value: 'final', labelFr: 'Finale', labelEn: 'Final' },
+  { value: 'GROUP', labelFr: 'Phase de poule', labelEn: 'Group Stage' },
+  { value: 'ROUND_OF_16', labelFr: '16e de finale', labelEn: 'Round of 16' },
+  { value: 'ROUND_OF_8', labelFr: '8e de finale', labelEn: 'Round of 8' },
+  { value: 'QUARTER', labelFr: 'Quarts de finale', labelEn: 'Quarter Finals' },
+  { value: 'SEMI', labelFr: 'Demi-finale', labelEn: 'Semi Final' },
+  { value: 'FINAL', labelFr: 'Finale', labelEn: 'Final' },
 ];
 
 export default function NewTeamMatchPage() {
   const router = useRouter();
   const { teamId } = useParams();
   const { locale } = useI18n();
+  const queryClient = useQueryClient();
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     opponent: '',
@@ -29,34 +37,39 @@ export default function NewTeamMatchPage() {
     time: '',
     location: '',
     isHome: true,
-    competition: 'friendly', // friendly, league, cup
-    competitionRound: '', // For cup: group, r16, qf, sf, final. For league: 1-60
-    preMatchNotes: '',
+    competitionType: 'FRIENDLY',
+    cupRound: '',
+    leagueMatchday: '',
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await api.post('/matches', { ...data, teamId });
+      const res = await api.post('/matches', {
+        ...data,
+        teamId,
+        leagueMatchday: data.leagueMatchday ? parseInt(data.leagueMatchday) : null,
+      });
       return res.data;
     },
-    onSuccess: (data) => {
-      router.push(`/team/${teamId}/matches/${data.id}`);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['matches', teamId] });
+      router.push(`/team/${teamId}/matches`);
     },
     onError: (err: any) => {
-      setError(err.response?.data?.error || 'Failed to create match');
+      setError(err.response?.data?.error || (locale === 'fr' ? 'Erreur lors de la création' : 'Failed to create match'));
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
+    
     if (!formData.opponent.trim()) {
-      setError(locale === 'fr' ? 'L\'adversaire est obligatoire' : 'Opponent is required');
+      setError(locale === 'fr' ? 'Le nom de l\'adversaire est requis' : 'Opponent name is required');
       return;
     }
     if (!formData.date) {
-      setError(locale === 'fr' ? 'La date est obligatoire' : 'Date is required');
+      setError(locale === 'fr' ? 'La date est requise' : 'Date is required');
       return;
     }
 
@@ -64,7 +77,7 @@ export default function NewTeamMatchPage() {
   };
 
   const updateField = (field: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -76,31 +89,28 @@ export default function NewTeamMatchPage() {
         </Button>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            {locale === 'fr' ? 'Nouveau match' : 'New Match'}
+            {locale === 'fr' ? 'Nouveau Match' : 'New Match'}
           </h1>
           <p className="text-muted-foreground">
-            {locale === 'fr' ? 'Planifier un match pour votre équipe' : 'Schedule a match for your team'}
+            {locale === 'fr' ? 'Planifier un nouveau match' : 'Schedule a new match'}
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {error && (
-          <div className="p-4 rounded-xl bg-destructive/10 text-destructive">
-            {error}
-          </div>
-        )}
+      {error && (
+        <div className="p-4 rounded-xl bg-destructive/10 text-destructive">
+          {error}
+        </div>
+      )}
 
-        {/* Match Details */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Info */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Trophy className="w-5 h-5" />
-              {locale === 'fr' ? 'Détails du match' : 'Match Details'}
+              {locale === 'fr' ? 'Informations du match' : 'Match Information'}
             </CardTitle>
-            <CardDescription>
-              {locale === 'fr' ? 'Informations sur le match' : 'Match information'}
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -117,47 +127,40 @@ export default function NewTeamMatchPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Date *</label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    type="date"
-                    className="pl-10"
-                    value={formData.date}
-                    onChange={(e) => updateField('date', e.target.value)}
-                    required
-                  />
-                </div>
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Date *
+                </label>
+                <Input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => updateField('date', e.target.value)}
+                  required
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
                   {locale === 'fr' ? 'Heure' : 'Time'}
                 </label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    type="time"
-                    className="pl-10"
-                    value={formData.time}
-                    onChange={(e) => updateField('time', e.target.value)}
-                  />
-                </div>
+                <Input
+                  type="time"
+                  value={formData.time}
+                  onChange={(e) => updateField('time', e.target.value)}
+                />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <MapPin className="w-4 h-4" />
                 {locale === 'fr' ? 'Lieu' : 'Location'}
               </label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder={locale === 'fr' ? 'Stade / Terrain' : 'Stadium / Field'}
-                  className="pl-10"
-                  value={formData.location}
-                  onChange={(e) => updateField('location', e.target.value)}
-                />
-              </div>
+              <Input
+                placeholder={locale === 'fr' ? 'Stade, terrain...' : 'Stadium, field...'}
+                value={formData.location}
+                onChange={(e) => updateField('location', e.target.value)}
+              />
             </div>
 
             <div className="space-y-2">
@@ -169,126 +172,79 @@ export default function NewTeamMatchPage() {
                   type="button"
                   onClick={() => updateField('isHome', true)}
                   className={`px-4 py-3 rounded-xl border text-sm font-medium transition-colors ${
-                    formData.isHome
-                      ? 'border-primary bg-primary/10 text-primary'
+                    formData.isHome 
+                      ? 'border-primary bg-primary/10 text-primary' 
                       : 'border-border hover:border-primary/50'
                   }`}
                 >
-                  {locale === 'fr' ? '🏠 Domicile' : '🏠 Home'}
+                  🏠 {locale === 'fr' ? 'Domicile' : 'Home'}
                 </button>
                 <button
                   type="button"
                   onClick={() => updateField('isHome', false)}
                   className={`px-4 py-3 rounded-xl border text-sm font-medium transition-colors ${
-                    !formData.isHome
-                      ? 'border-primary bg-primary/10 text-primary'
+                    !formData.isHome 
+                      ? 'border-primary bg-primary/10 text-primary' 
                       : 'border-border hover:border-primary/50'
                   }`}
                 >
-                  {locale === 'fr' ? '✈️ Extérieur' : '✈️ Away'}
+                  ✈️ {locale === 'fr' ? 'Extérieur' : 'Away'}
                 </button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Competition */}
+        {/* Competition Type */}
         <Card>
           <CardHeader>
             <CardTitle>
-              {locale === 'fr' ? 'Compétition' : 'Competition'}
+              {locale === 'fr' ? 'Type de compétition' : 'Competition Type'}
             </CardTitle>
             <CardDescription>
-              {locale === 'fr' ? 'Type de match et détails de la compétition' : 'Match type and competition details'}
+              {locale === 'fr' ? 'Sélectionnez le type de match' : 'Select the match type'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Competition Type */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                {locale === 'fr' ? 'Type de match' : 'Match Type'}
-              </label>
-              <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-3">
+              {COMPETITION_TYPES.map((type) => (
                 <button
+                  key={type.value}
                   type="button"
                   onClick={() => {
-                    updateField('competition', 'friendly');
-                    updateField('competitionRound', '');
+                    updateField('competitionType', type.value);
+                    if (type.value !== 'CUP') updateField('cupRound', '');
+                    if (type.value !== 'LEAGUE') updateField('leagueMatchday', '');
                   }}
-                  className={`px-4 py-3 rounded-xl border text-sm font-medium transition-colors ${
-                    formData.competition === 'friendly'
-                      ? 'border-primary bg-primary/10 text-primary'
+                  className={`px-4 py-4 rounded-xl border text-center transition-all ${
+                    formData.competitionType === type.value 
+                      ? 'border-primary bg-primary/10 text-primary shadow-sm' 
                       : 'border-border hover:border-primary/50'
                   }`}
                 >
-                  {locale === 'fr' ? '🤝 Amical' : '🤝 Friendly'}
+                  <span className="text-2xl block mb-1">{type.emoji}</span>
+                  <span className="text-sm font-medium">
+                    {locale === 'fr' ? type.labelFr : type.labelEn}
+                  </span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    updateField('competition', 'league');
-                    updateField('competitionRound', '1');
-                  }}
-                  className={`px-4 py-3 rounded-xl border text-sm font-medium transition-colors ${
-                    formData.competition === 'league'
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                >
-                  {locale === 'fr' ? '🏆 Championnat' : '🏆 League'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    updateField('competition', 'cup');
-                    updateField('competitionRound', 'group');
-                  }}
-                  className={`px-4 py-3 rounded-xl border text-sm font-medium transition-colors ${
-                    formData.competition === 'cup'
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                >
-                  {locale === 'fr' ? '🏅 Coupe' : '🏅 Cup'}
-                </button>
-              </div>
+              ))}
             </div>
 
-            {/* League Round */}
-            {formData.competition === 'league' && (
-              <div className="space-y-2">
+            {/* Cup Round Options */}
+            {formData.competitionType === 'CUP' && (
+              <div className="space-y-2 pt-4 border-t">
                 <label className="text-sm font-medium">
-                  {locale === 'fr' ? 'Journée' : 'Matchday'}
-                </label>
-                <select
-                  className="w-full h-10 rounded-xl border border-input bg-background px-3 py-2 text-sm"
-                  value={formData.competitionRound}
-                  onChange={(e) => updateField('competitionRound', e.target.value)}
-                >
-                  {Array.from({ length: 60 }, (_, i) => i + 1).map((num) => (
-                    <option key={num} value={num.toString()}>
-                      {locale === 'fr' ? `Journée ${num}` : `Matchday ${num}`}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Cup Round */}
-            {formData.competition === 'cup' && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  {locale === 'fr' ? 'Phase' : 'Round'}
+                  {locale === 'fr' ? 'Tour de coupe' : 'Cup Round'}
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {CUP_ROUNDS.map((round) => (
                     <button
                       key={round.value}
                       type="button"
-                      onClick={() => updateField('competitionRound', round.value)}
-                      className={`px-3 py-2 rounded-xl border text-sm font-medium transition-colors ${
-                        formData.competitionRound === round.value
-                          ? 'border-primary bg-primary/10 text-primary'
+                      onClick={() => updateField('cupRound', round.value)}
+                      className={`px-3 py-3 rounded-xl border text-sm font-medium transition-colors ${
+                        formData.cupRound === round.value 
+                          ? 'border-primary bg-primary/10 text-primary' 
                           : 'border-border hover:border-primary/50'
                       }`}
                     >
@@ -298,23 +254,27 @@ export default function NewTeamMatchPage() {
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
 
-        {/* Pre-match Notes */}
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {locale === 'fr' ? 'Notes avant-match' : 'Pre-match Notes'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <textarea
-              className="w-full min-h-[100px] rounded-xl border border-input bg-background px-4 py-3 text-sm resize-none"
-              placeholder={locale === 'fr' ? 'Tactique, consignes, points clés...' : 'Tactics, instructions, key points...'}
-              value={formData.preMatchNotes}
-              onChange={(e) => updateField('preMatchNotes', e.target.value)}
-            />
+            {/* League Matchday */}
+            {formData.competitionType === 'LEAGUE' && (
+              <div className="space-y-2 pt-4 border-t">
+                <label className="text-sm font-medium">
+                  {locale === 'fr' ? 'Journée de championnat' : 'League Matchday'}
+                </label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="60"
+                  placeholder={locale === 'fr' ? 'Numéro de journée (1-60)' : 'Matchday number (1-60)'}
+                  value={formData.leagueMatchday}
+                  onChange={(e) => updateField('leagueMatchday', e.target.value)}
+                  className="max-w-[200px]"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {locale === 'fr' ? 'Ex: Journée 15 du championnat' : 'Ex: Matchday 15 of the league'}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

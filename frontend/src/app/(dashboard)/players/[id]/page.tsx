@@ -1,342 +1,210 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Save, User, Mail, Phone, Calendar, Ruler, Weight, Shirt, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowLeft, Edit, Calendar, Target, Trophy, Clock, User } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { formatDate, getInitials } from '@/lib/utils';
 
-const POSITIONS = [
-  'Goalkeeper',
-  'Right Back',
-  'Left Back',
-  'Center Back',
-  'Defensive Midfielder',
-  'Central Midfielder',
-  'Attacking Midfielder',
-  'Right Winger',
-  'Left Winger',
-  'Striker',
-];
-
-const PREFERRED_FOOT = ['Right', 'Left', 'Both'];
-
-export default function EditPlayerPage() {
-  const params = useParams();
+export default function PlayerDetailPage() {
+  const { id } = useParams();
   const router = useRouter();
-  const playerId = params.id as string;
-  
-  const [error, setError] = useState('');
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    dateOfBirth: '',
-    position: '',
-    preferredFoot: '',
-    height: '',
-    weight: '',
-    jerseyNumber: '',
-    parentName: '',
-    parentEmail: '',
-    parentPhone: '',
-  });
+  const { locale } = useI18n();
 
-  // Fetch player data
   const { data: player, isLoading } = useQuery({
-    queryKey: ['player', playerId],
+    queryKey: ['player', id],
     queryFn: async () => {
-      const res = await api.get(`/players/${playerId}`);
+      const res = await api.get(`/players/${id}`);
       return res.data;
     },
   });
 
-  // Populate form when player data loads
-  useEffect(() => {
-    if (player) {
-      setFormData({
-        firstName: player.firstName || '',
-        lastName: player.lastName || '',
-        email: player.email || '',
-        phone: player.phone || '',
-        dateOfBirth: player.dateOfBirth ? player.dateOfBirth.split('T')[0] : '',
-        position: player.position || '',
-        preferredFoot: player.preferredFoot || '',
-        height: player.height?.toString() || '',
-        weight: player.weight?.toString() || '',
-        jerseyNumber: player.jerseyNumber?.toString() || '',
-        parentName: player.parentName || '',
-        parentEmail: player.parentEmail || '',
-        parentPhone: player.parentPhone || '',
-      });
-    }
-  }, [player]);
-
-  const updateMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      const res = await api.put(`/players/${playerId}`, data);
+  // Fetch player notes
+  const { data: notes } = useQuery({
+    queryKey: ['notes', 'player', id],
+    queryFn: async () => {
+      const res = await api.get('/notes', { params: { playerId: id } });
       return res.data;
     },
-    onSuccess: () => {
-      router.push(`/players/${playerId}`);
-    },
-    onError: (err: any) => {
-      setError(err.response?.data?.error || 'Failed to update player');
-    },
   });
-
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      return api.delete(`/players/${playerId}`);
-    },
-    onSuccess: () => {
-      router.push('/players');
-    },
-    onError: (err: any) => {
-      setError(err.response?.data?.error || 'Failed to delete player');
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    updateMutation.mutate(formData);
-  };
-
-  const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this player? This action cannot be undone.')) {
-      deleteMutation.mutate();
-    }
-  };
-
-  const updateField = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6 animate-pulse">
+        <div className="h-10 bg-muted rounded w-1/3" />
+        <Card><CardContent className="p-6"><div className="h-40 bg-muted rounded" /></CardContent></Card>
+      </div>
+    );
+  }
+
+  if (!player) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-muted-foreground">
+          {locale === 'fr' ? 'Joueur non trouvé' : 'Player not found'}
+        </p>
+        <Button variant="outline" className="mt-4" onClick={() => router.back()}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          {locale === 'fr' ? 'Retour' : 'Back'}
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-in max-w-3xl">
+    <div className="space-y-6 animate-in">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold tracking-tight">Edit Player</h1>
-          <p className="text-muted-foreground">
-            {player?.firstName} {player?.lastName}
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="flex items-center gap-4">
+            <Avatar className="w-16 h-16">
+              <AvatarImage src={player.avatar} />
+              <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                {getInitials(player.firstName, player.lastName)}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                {player.firstName} {player.lastName}
+              </h1>
+              <p className="text-muted-foreground">{player.position}</p>
+            </div>
+          </div>
         </div>
-        <Button variant="destructive" size="sm" onClick={handleDelete}>
-          <Trash2 className="w-4 h-4 mr-2" />
-          Delete
-        </Button>
+        <Link href={`/players/${id}/edit`}>
+          <Button>
+            <Edit className="w-4 h-4 mr-2" />
+            {locale === 'fr' ? 'Modifier' : 'Edit'}
+          </Button>
+        </Link>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {error && (
-          <div className="p-4 rounded-xl bg-destructive/10 text-destructive">
-            {error}
-          </div>
-        )}
-
-        {/* Basic Info */}
-        <Card>
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Main Info */}
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="w-5 h-5" />
-              Basic Information
+              {locale === 'fr' ? 'Informations' : 'Information'}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">First Name *</label>
-                <Input
-                  value={formData.firstName}
-                  onChange={(e) => updateField('firstName', e.target.value)}
-                  required
-                />
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  {locale === 'fr' ? 'Position' : 'Position'}
+                </p>
+                <p className="font-medium">{player.position || '-'}</p>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Last Name *</label>
-                <Input
-                  value={formData.lastName}
-                  onChange={(e) => updateField('lastName', e.target.value)}
-                  required
-                />
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  {locale === 'fr' ? 'Numéro' : 'Number'}
+                </p>
+                <p className="font-medium">{player.number || '-'}</p>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Email</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    type="email"
-                    className="pl-10"
-                    value={formData.email}
-                    onChange={(e) => updateField('email', e.target.value)}
-                  />
-                </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  {locale === 'fr' ? 'Date de naissance' : 'Birth Date'}
+                </p>
+                <p className="font-medium">
+                  {player.birthDate ? formatDate(player.birthDate) : '-'}
+                </p>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Phone</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    type="tel"
-                    className="pl-10"
-                    value={formData.phone}
-                    onChange={(e) => updateField('phone', e.target.value)}
-                  />
-                </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  {locale === 'fr' ? 'Âge' : 'Age'}
+                </p>
+                <p className="font-medium">
+                  {player.age ? `${player.age} ${locale === 'fr' ? 'ans' : 'years'}` : '-'}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Email</p>
+                <p className="font-medium">{player.email || '-'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  {locale === 'fr' ? 'Téléphone' : 'Phone'}
+                </p>
+                <p className="font-medium">{player.phone || '-'}</p>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Date of Birth</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="date"
-                  className="pl-10"
-                  value={formData.dateOfBirth}
-                  onChange={(e) => updateField('dateOfBirth', e.target.value)}
-                />
+            {player.notes && (
+              <div className="mt-6 pt-6 border-t">
+                <p className="text-sm text-muted-foreground mb-2">Notes</p>
+                <p className="whitespace-pre-wrap">{player.notes}</p>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Football Info */}
+        {/* Stats */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Shirt className="w-5 h-5" />
-              Football Information
+              <Trophy className="w-5 h-5" />
+              {locale === 'fr' ? 'Statistiques' : 'Statistics'}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Position</label>
-                <select
-                  className="w-full h-10 rounded-xl border border-input bg-background px-3 py-2 text-sm"
-                  value={formData.position}
-                  onChange={(e) => updateField('position', e.target.value)}
-                >
-                  <option value="">Select position</option>
-                  {POSITIONS.map((pos) => (
-                    <option key={pos} value={pos}>
-                      {pos}
-                    </option>
-                  ))}
-                </select>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/50">
+                <span className="text-sm">{locale === 'fr' ? 'Matchs joués' : 'Matches Played'}</span>
+                <span className="text-xl font-bold">{player.matchesPlayed || 0}</span>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Preferred Foot</label>
-                <select
-                  className="w-full h-10 rounded-xl border border-input bg-background px-3 py-2 text-sm"
-                  value={formData.preferredFoot}
-                  onChange={(e) => updateField('preferredFoot', e.target.value)}
-                >
-                  <option value="">Select foot</option>
-                  {PREFERRED_FOOT.map((foot) => (
-                    <option key={foot} value={foot}>
-                      {foot}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/50">
+                <span className="text-sm">{locale === 'fr' ? 'Buts' : 'Goals'}</span>
+                <span className="text-xl font-bold">{player.goals || 0}</span>
               </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Height (cm)</label>
-                <Input
-                  type="number"
-                  value={formData.height}
-                  onChange={(e) => updateField('height', e.target.value)}
-                />
+              <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/50">
+                <span className="text-sm">{locale === 'fr' ? 'Passes D' : 'Assists'}</span>
+                <span className="text-xl font-bold">{player.assists || 0}</span>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Weight (kg)</label>
-                <Input
-                  type="number"
-                  value={formData.weight}
-                  onChange={(e) => updateField('weight', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Jersey #</label>
-                <Input
-                  type="number"
-                  value={formData.jerseyNumber}
-                  onChange={(e) => updateField('jerseyNumber', e.target.value)}
-                />
+              <div className="flex items-center justify-between p-3 rounded-xl bg-yellow-500/10">
+                <span className="text-sm">{locale === 'fr' ? 'Homme du match' : 'MOTM'}</span>
+                <span className="text-xl font-bold text-yellow-500">{player.manOfMatch || 0}</span>
               </div>
             </div>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Parent/Guardian Info */}
+      {/* Notes */}
+      {notes && notes.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Parent/Guardian Information</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              {locale === 'fr' ? 'Notes de suivi' : 'Follow-up Notes'}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Parent Name</label>
-              <Input
-                value={formData.parentName}
-                onChange={(e) => updateField('parentName', e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Parent Email</label>
-                <Input
-                  type="email"
-                  value={formData.parentEmail}
-                  onChange={(e) => updateField('parentEmail', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Parent Phone</label>
-                <Input
-                  type="tel"
-                  value={formData.parentPhone}
-                  onChange={(e) => updateField('parentPhone', e.target.value)}
-                />
-              </div>
+          <CardContent>
+            <div className="space-y-4">
+              {notes.map((note: any) => (
+                <div key={note.id} className="p-4 rounded-xl bg-secondary/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge variant="secondary">{note.category || 'General'}</Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(note.createdAt)}
+                    </span>
+                  </div>
+                  <p className="text-sm whitespace-pre-wrap">{note.content}</p>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
-
-        {/* Actions */}
-        <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => router.back()}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={updateMutation.isPending}>
-            <Save className="w-4 h-4 mr-2" />
-            {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
-          </Button>
-        </div>
-      </form>
+      )}
     </div>
   );
 }
